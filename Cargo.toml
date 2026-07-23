@@ -3,6 +3,9 @@ name = "topohedral-geometry"
 version = "0.0.0"
 edition = "2021"
 
+[features]
+enable_trace = ["topohedral-tracing/enable_trace"]
+
 [dependencies]
 approx = "0.5.1"
 topohedral-tracing = {version = "0.1.1", registry = "cloudsmith"}
@@ -12,4 +15,5 @@ serde_json = "1.0"
 thiserror = "2.0.17"
 
 [dev-dependencies]
+topohedral-tracing = { version = "0.1.1", registry = "cloudsmith"}
 topohedral-linalg = {version = "4.1.0", registry = "cloudsmith"}

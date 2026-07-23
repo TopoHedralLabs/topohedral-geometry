@@ -44,7 +44,10 @@ fn reference_curve() -> BCurve {
     .unwrap()
 }
 
-fn assert_point_eq(actual: &DVector<f64>, expected: [f64; 3]) {
+fn assert_point_eq(
+    actual: &DVector<f64>,
+    expected: [f64; 3],
+) {
     for (actual, expected) in actual.iter().zip(expected) {
         assert_relative_eq!(*actual, expected, epsilon = 1.0e-10, max_relative = 1.0e-10);
     }

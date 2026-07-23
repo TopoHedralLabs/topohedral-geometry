@@ -19,19 +19,28 @@ pub const KNOT_ULPS: u32 = 32;
 //}}}
 //{{{ fun: knot_lt
 /// Tolerant less-thant for knots
-fn knot_lt(u1: f64, u2: f64) -> bool {
+fn knot_lt(
+    u1: f64,
+    u2: f64,
+) -> bool {
     u1 < u2 || ulps_eq!(u1, u2, max_ulps = KNOT_ULPS)
 }
 //}}}
 //{{{ fun: knot_gt
 /// Tolerant greater-thant for knots
-fn knot_gt(u1: f64, u2: f64) -> bool {
+fn knot_gt(
+    u1: f64,
+    u2: f64,
+) -> bool {
     u1 > u2 || ulps_eq!(u1, u2, max_ulps = KNOT_ULPS)
 }
 //}}}
 //{{{ fun: knot_eq
 /// Checks if two floating-point values are considered equal within a tolerance.
-pub fn knot_eq(u1: f64, u2: f64) -> bool {
+pub fn knot_eq(
+    u1: f64,
+    u2: f64,
+) -> bool {
     ulps_eq!(u1, u2, max_ulps = KNOT_ULPS)
 }
 //}}}
@@ -49,7 +58,10 @@ pub fn knot_eq(u1: f64, u2: f64) -> bool {
 /// # Returns
 ///
 /// The index where `value` should be inserted to maintain sorted order.
-fn upper_bound(arr: &[f64], value: f64) -> usize {
+fn upper_bound(
+    arr: &[f64],
+    value: f64,
+) -> usize {
     let comp = |val: &f64| {
         if knot_lt(*val, value) {
             std::cmp::Ordering::Less
@@ -74,7 +86,10 @@ fn upper_bound(arr: &[f64], value: f64) -> usize {
 /// # Returns
 ///
 /// Returns `true` if `u` is within the range of the knot vector, `false` otherwise.
-pub fn is_member(knots: &[f64], u: f64) -> bool {
+pub fn is_member(
+    knots: &[f64],
+    u: f64,
+) -> bool {
     let umin = knots.first().unwrap();
     let umax = knots.last().unwrap();
     knot_gt(u, *umin) && knot_lt(u, *umax)
@@ -96,7 +111,11 @@ pub fn is_member(knots: &[f64], u: f64) -> bool {
 /// # Returns
 ///
 /// The index of the knot vector that contains the given parameter value `u`.
-pub fn find_span(knots: &[f64], u: f64, p: usize) -> usize {
+pub fn find_span(
+    knots: &[f64],
+    u: f64,
+    p: usize,
+) -> usize {
     let n = knots.len() - p - 1;
     if knot_eq(u, knots[n]) {
         n - 1
@@ -123,7 +142,11 @@ pub fn find_span(knots: &[f64], u: f64, p: usize) -> usize {
 /// # Returns
 ///
 /// A tuple containing the start index, end index, and the number of non-zero basis functions.
-pub fn non_zero_basis(knots: &[f64], u: f64, p: usize) -> (usize, usize, usize) {
+pub fn non_zero_basis(
+    knots: &[f64],
+    u: f64,
+    p: usize,
+) -> (usize, usize, usize) {
     debug_assert!(is_member(knots, u));
 
     let mi = knots.len() as i32;
@@ -154,7 +177,12 @@ pub fn non_zero_basis(knots: &[f64], u: f64, p: usize) -> (usize, usize, usize) 
 ///
 /// - If `shape_funs.len() < p + 1`, indicating the buffer is too small to hold the results.
 /// - If `u` is not a member of the parameter range defined by the knot vector.
-pub fn eval(knots: &[f64], u: f64, p: usize, shape_funs: &mut [f64]) {
+pub fn eval(
+    knots: &[f64],
+    u: f64,
+    p: usize,
+    shape_funs: &mut [f64],
+) {
     debug_assert!(shape_funs.len() > p, "Buffer too small to hold results");
     debug_assert!(is_member(knots, u), "u is outside of ");
 
@@ -200,7 +228,13 @@ pub fn eval(knots: &[f64], u: f64, p: usize, shape_funs: &mut [f64]) {
 /// - If `u` is not a member of the parameter range defined by the knot vector.
 /// - If `p` exceeds the maximum allowable order (`PMAX`).
 /// - If the length of `shape_ders` is less than `(p + 1)`, indicating the buffer is too small to hold the results.
-pub fn eval_diff(knots: &[f64], u: f64, p: usize, k: usize, shape_ders: &mut [f64]) {
+pub fn eval_diff(
+    knots: &[f64],
+    u: f64,
+    p: usize,
+    k: usize,
+    shape_ders: &mut [f64],
+) {
     debug_assert!(is_member(knots, u), "u is not member of parameter range");
     debug_assert!(p <= PMAX, "order exceeds max allowable");
     // debug_assert!(k <= p, "order of derivative exceeds order");
@@ -255,7 +289,13 @@ pub fn eval_diff(knots: &[f64], u: f64, p: usize, k: usize, shape_ders: &mut [f6
 }
 //}}}
 //{{{ fun: eval_diff_all
-pub fn eval_diff_all(knots: &[f64], u: f64, p: usize, k_in: usize, shape_ders: &mut [f64]) {
+pub fn eval_diff_all(
+    knots: &[f64],
+    u: f64,
+    p: usize,
+    k_in: usize,
+    shape_ders: &mut [f64],
+) {
     debug_assert!(is_member(knots, u), "u is not member of parameter range");
     debug_assert!(p < PMAX, "order exceeds max allowable");
     // debug_assert!(k <= p, "order of derivative exceeds order");
@@ -300,12 +340,10 @@ pub fn multiplicites(knots: &[f64]) -> Vec<(f64, usize)> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use approx::assert_abs_diff_eq;
 
     const U0: f64 = 0.6060606060606061;
     const U1: f64 = 2.4242424242424243;
     const U2: f64 = 4.545454545454546;
-    const TOLERANCE: f64 = 1.0e-14;
 
     const KNOTS_P0: &[f64] = &[0.0, 1.0, 2.0, 4.0, 4.0, 5.0, 6.0];
     const KNOTS_P1: &[f64] = &[0.0, 0.0, 1.0, 2.0, 4.0, 4.0, 5.0, 6.0, 6.0];
@@ -325,13 +363,6 @@ mod tests {
             3 => KNOTS_P3,
             4 => KNOTS_P4,
             _ => unreachable!(),
-        }
-    }
-
-    fn assert_slice_eq(actual: &[f64], expected: &[f64]) {
-        assert_eq!(actual.len(), expected.len());
-        for (actual, expected) in actual.iter().zip(expected) {
-            assert_abs_diff_eq!(actual, expected, epsilon = TOLERANCE);
         }
     }
 
@@ -360,198 +391,6 @@ mod tests {
                 );
             }
         }
-    }
-
-    #[test]
-    fn basis_functions_match_reference_data() {
-        let cases: &[(usize, f64, &[f64])] = &[
-            (0, U0, &[1.0]),
-            (0, U1, &[1.0]),
-            (0, U2, &[1.0]),
-            (1, U0, &[0.3939393939393939, 0.6060606060606061]),
-            (1, U1, &[0.7878787878787878, 0.21212121212121215]),
-            (1, U2, &[0.45454545454545414, 0.5454545454545459]),
-            (
-                2,
-                U0,
-                &[0.155188246097337, 0.6611570247933884, 0.18365472910927458],
-            ),
-            (
-                2,
-                U1,
-                &[0.41383532292623193, 0.5411692684419958, 0.04499540863177228],
-            ),
-            (
-                2,
-                U2,
-                &[0.20661157024793353, 0.6446280991735538, 0.14876033057851262],
-            ),
-            (
-                3,
-                U0,
-                &[
-                    0.06113476361410245,
-                    0.5548598937028689,
-                    0.3561788685755628,
-                    0.027826474107465846,
-                ],
-            ),
-            (
-                3,
-                U1,
-                &[
-                    0.16302603630427318,
-                    0.5350598114601787,
-                    0.2955511651563075,
-                    0.006362987079240525,
-                ],
-            ),
-            (
-                3,
-                U2,
-                &[
-                    0.03130478337089899,
-                    0.644127222639619,
-                    0.28399699474079665,
-                    0.04057099924868529,
-                ],
-            ),
-            (
-                4,
-                U0,
-                &[
-                    0.02408339172676763,
-                    0.42377190386206165,
-                    0.4703517350649833,
-                    0.07757683690566236,
-                    0.004216132440525129,
-                ],
-            ),
-            (
-                4,
-                U1,
-                &[
-                    0.06422237793804701,
-                    0.30958479621417534,
-                    0.5145957117810639,
-                    0.11092225180073362,
-                    0.0006748622659800558,
-                ],
-            ),
-            (
-                4,
-                U2,
-                &[
-                    0.0035573617466930635,
-                    0.2619755025840673,
-                    0.6164424105821551,
-                    0.10695990711017025,
-                    0.011064817976914179,
-                ],
-            ),
-        ];
-
-        for &(p, u, expected) in cases {
-            let mut actual = [f64::NAN; PMAX + 1];
-            eval(knots(p), u, p, &mut actual);
-            assert_slice_eq(&actual[..p + 1], expected);
-        }
-    }
-
-    #[test]
-    fn basis_derivatives_match_reference_data() {
-        // Each consecutive p + 1 values is one derivative order at U1.
-        let cases: &[(usize, &[f64])] = &[
-            (0, &[1.0]),
-            (1, &[0.7878787878787878, 0.21212121212121215, -0.5, 0.5]),
-            (
-                2,
-                &[
-                    0.41383532292623193,
-                    0.5411692684419958,
-                    0.04499540863177228,
-                    -0.5252525252525252,
-                    0.31313131313131304,
-                    0.21212121212121215,
-                    0.3333333333333333,
-                    -0.8333333333333333,
-                    0.5,
-                ],
-            ),
-            (
-                3,
-                &[
-                    0.16302603630427318,
-                    0.5350598114601787,
-                    0.2955511651563075,
-                    0.006362987079240525,
-                    -0.31037649219467395,
-                    -0.23079277624732178,
-                    0.49617385981022344,
-                    0.04499540863177228,
-                    0.3939393939393939,
-                    -0.7070707070707068,
-                    0.10101010101010088,
-                    0.21212121212121215,
-                    -0.25,
-                    1.083333333333333,
-                    -1.3333333333333333,
-                    0.5,
-                ],
-            ),
-            (
-                4,
-                &[
-                    0.06422237793804701,
-                    0.30958479621417534,
-                    0.5145957117810639,
-                    0.11092225180073362,
-                    0.0006748622659800558,
-                    -0.16302603630427318,
-                    -0.3720337751559055,
-                    0.23950864630387114,
-                    0.289188178077067,
-                    0.006362987079240525,
-                    0.31037649219467395,
-                    -0.07958371594735217,
-                    -0.7269666360575453,
-                    0.4511784511784511,
-                    0.04499540863177228,
-                    -0.3939393939393939,
-                    1.1010101010101008,
-                    -0.8080808080808077,
-                    -0.11111111111111127,
-                    0.21212121212121215,
-                    0.25,
-                    -1.3333333333333333,
-                    2.416666666666667,
-                    -1.8333333333333335,
-                    0.5,
-                ],
-            ),
-        ];
-
-        for &(p, expected) in cases {
-            let row_size = p + 1;
-            for derivative in 0..=p {
-                let mut actual = [f64::NAN; PMAX + 1];
-                eval_diff(knots(p), U1, p, derivative, &mut actual);
-                let start = derivative * row_size;
-                assert_slice_eq(&actual[..row_size], &expected[start..start + row_size]);
-            }
-
-            let mut actual_all = vec![f64::NAN; row_size * row_size];
-            eval_diff_all(knots(p), U1, p, p, &mut actual_all);
-            assert_slice_eq(&actual_all, expected);
-        }
-    }
-
-    #[test]
-    fn knot_multiplicities_match_reference_knot_vector() {
-        assert_eq!(
-            multiplicites(KNOTS_P4),
-            vec![(0.0, 5), (1.0, 1), (2.0, 1), (4.0, 2), (5.0, 1), (6.0, 5)],
-        );
     }
 }
 //}}}

@@ -7,8 +7,8 @@ use core::num;
 use std::todo;
 
 //{{{ crate imports
-use crate::common::{IndexHelper, Matrix, MultDimArray, Vector, homog, inv_homog, zero_vec};
-use crate::splines::{self, PMAX, eval, is_member};
+use crate::common::{homog, inv_homog, zero_vec, IndexHelper, Matrix, MultDimArray, Vector};
+use crate::splines::{self, eval, is_member, PMAX};
 //}}}
 //{{{ std imports
 //}}}
@@ -18,76 +18,94 @@ use topohedral_linalg::{SubViewable, SubViewableMut, TransformOps, VectorOps};
 //}}}
 //--------------------------------------------------------------------------------------------------
 
-
 pub const BCURVE_DER_MAX: usize = 5;
 pub const BCURVE_DER_MAX_SQRD: usize = 25;
 pub const BCURVE_DER_MAX_CBD: usize = 125;
 
-
-pub trait Curve
-{
-    fn eval_point(&self, u: f64) -> Vector;
-    fn eval_derivative(&self, u: f64, m: usize) -> Vector;
-    fn eval_all_derivatives(&self, u: f64, m: usize, derivatives: &mut [Vector]) ;
-    fn eval_tangent(&self, u: f64, normalize: bool) -> Vector;
-    fn eval_normal(&self, u: f64, normalize: bool) -> Vector;
-    fn eval_binormal(&self, u: f64, normalize: bool) -> Vector;
+pub trait Curve {
+    fn eval_point(
+        &self,
+        u: f64,
+    ) -> Vector;
+    fn eval_derivative(
+        &self,
+        u: f64,
+        m: usize,
+    ) -> Vector;
+    fn eval_all_derivatives(
+        &self,
+        u: f64,
+        m: usize,
+        derivatives: &mut [Vector],
+    );
+    fn eval_tangent(
+        &self,
+        u: f64,
+        normalize: bool,
+    ) -> Vector;
+    fn eval_normal(
+        &self,
+        u: f64,
+        normalize: bool,
+    ) -> Vector;
+    fn eval_binormal(
+        &self,
+        u: f64,
+        normalize: bool,
+    ) -> Vector;
 }
 
 #[derive(Debug, Error)]
-pub enum CurveError
-{
+pub enum CurveError {
     #[error("Construction error {0}")]
-    ConstructionError(String)
+    ConstructionError(String),
 }
 
-pub struct BCurve
-{
+pub struct BCurve {
     dimension: usize,
     order: usize,
     knots: Vec<f64>,
     points_w: Vec<Vector>,
 }
 
-
-
 #[derive(Debug, Clone)]
-pub struct BCurveData
-{
+pub struct BCurveData {
     pub p: usize,
     pub knots: Vec<f64>,
     pub points: Vec<Vector>,
     pub weights: Vec<f64>,
 }
 
-impl BCurveData
-{
-    fn validate(&self) -> Result<(), CurveError>
-    {
-        if self.p > PMAX
-        {
-            return Err(CurveError::ConstructionError("Order too high".to_string()))
+impl BCurveData {
+    fn validate(&self) -> Result<(), CurveError> {
+        if self.p > PMAX {
+            return Err(CurveError::ConstructionError("Order too high".to_string()));
         }
         if !self.knots.is_sorted() {
-
-            return Err(CurveError::ConstructionError("Knots not sorted".to_string()))
+            return Err(CurveError::ConstructionError(
+                "Knots not sorted".to_string(),
+            ));
         }
-        if !self.weights.iter().all(|&x| x >= 0.0)
-        {
-            return Err(CurveError::ConstructionError("Weights must by positive".to_string()))
+        if !self.weights.iter().all(|&x| x >= 0.0) {
+            return Err(CurveError::ConstructionError(
+                "Weights must by positive".to_string(),
+            ));
         }
-        if self.points.len() != self.weights.len()
-        {
-            return Err(CurveError::ConstructionError("Points and weights must have same size".to_string()))
+        if self.points.len() != self.weights.len() {
+            return Err(CurveError::ConstructionError(
+                "Points and weights must have same size".to_string(),
+            ));
         }
-        if self.knots.len() != (self.weights.len() + self.p + 1)
-        {
-            return Err(CurveError::ConstructionError("Knots have wrong size".to_string()))
+        if self.knots.len() != (self.weights.len() + self.p + 1) {
+            return Err(CurveError::ConstructionError(
+                "Knots have wrong size".to_string(),
+            ));
         }
         let dim = self.points[0].len();
-        if !self.points.iter().all(|x| x.len() == dim)
-        {
-            return Err(CurveError::ConstructionError("All points must have same length".to_string()))
+        if !self.points.iter().all(|x| x.len() == dim) {
+            return Err(CurveError::ConstructionError(
+                "All points must have same length".to_string(),
+            ));
         }
         Ok(())
     }
@@ -97,11 +115,13 @@ impl BCurveData
     }
 }
 
-
 //{{{ fun: binom_coeff
-fn binom_coeff(n: usize, binom: &mut [f64]) {
+fn binom_coeff(
+    n: usize,
+    binom: &mut [f64],
+) {
     debug_assert!(binom.len() >= (n + 1) * (n + 1));
-    let idx_map = IndexHelper::<2>::new(&[n+1, n+1]);
+    let idx_map = IndexHelper::<2>::new(&[n + 1, n + 1]);
     binom.fill(0.0);
     for i in 0..n + 1 {
         binom[idx_map.lin_index(&[i, i])] = 1.0;
@@ -110,41 +130,33 @@ fn binom_coeff(n: usize, binom: &mut [f64]) {
 
     for n2 in 2..n + 1 {
         for k2 in 1..n2 {
-
-            binom[idx_map.lin_index(&[n2, k2])]
-            = binom[idx_map.lin_index(&[n2 - 1, k2 - 1])]
-            + binom[idx_map.lin_index(&[n2 - 1, k2])];
+            binom[idx_map.lin_index(&[n2, k2])] = binom[idx_map.lin_index(&[n2 - 1, k2 - 1])]
+                + binom[idx_map.lin_index(&[n2 - 1, k2])];
         }
     }
 }
 //}}}
 
-fn binom_coeff2(n: usize) -> MultDimArray<f64, BCURVE_DER_MAX_SQRD, 2>
-{
-    let mut binom = MultDimArray::<f64, BCURVE_DER_MAX_SQRD, 2>::new(0.0, &[n+1, n+1]);
+fn binom_coeff2(n: usize) -> MultDimArray<f64, BCURVE_DER_MAX_SQRD, 2> {
+    let mut binom = MultDimArray::<f64, BCURVE_DER_MAX_SQRD, 2>::new(0.0, &[n + 1, n + 1]);
     for i in 0..n + 1 {
         binom[&[i, i]] = 1.0;
         binom[&[i, 0]] = 1.0;
     }
     for n2 in 2..n + 1 {
         for k2 in 1..n2 {
-
-            binom[&[n2, k2]]
-            = binom[&[n2 - 1, k2 - 1]]
-            + binom[&[n2 - 1, k2]];
+            binom[&[n2, k2]] = binom[&[n2 - 1, k2 - 1]] + binom[&[n2 - 1, k2]];
         }
     }
     binom
 }
 
-impl BCurve
-{
-    pub fn new(data: BCurveData) -> Result<Self, CurveError>
-    {
+impl BCurve {
+    pub fn new(data: BCurveData) -> Result<Self, CurveError> {
         data.validate()?;
         let dim = data.dim();
         let n = data.weights.len();
-        let mut points_w = vec![zero_vec(dim+1); n];
+        let mut points_w = vec![zero_vec(dim + 1); n];
         for i in 0..n {
             points_w[i].copy_from(&homog(&data.points[i], data.weights[i]));
         }
@@ -152,14 +164,16 @@ impl BCurve
             dimension: dim,
             order: data.p,
             knots: data.knots,
-            points_w
+            points_w,
         })
     }
 }
 
-impl Curve for BCurve
-{
-    fn eval_point(&self, u: f64) -> Vector {
+impl Curve for BCurve {
+    fn eval_point(
+        &self,
+        u: f64,
+    ) -> Vector {
         assert!(is_member(&self.knots, u));
 
         let mut point_w = zero_vec(self.dimension + 1);
@@ -173,7 +187,11 @@ impl Curve for BCurve
         inv_homog(&point_w)
     }
 
-    fn eval_derivative(&self, u: f64, m: usize) -> Vector {
+    fn eval_derivative(
+        &self,
+        u: f64,
+        m: usize,
+    ) -> Vector {
         assert!(m < BCURVE_DER_MAX, "derivative order exceeds maximum");
 
         let mut derivatives: [Vector; BCURVE_DER_MAX] =
@@ -182,63 +200,82 @@ impl Curve for BCurve
         derivatives[m].clone()
     }
 
-    fn eval_all_derivatives(&self, u: f64, derivative_order: usize, derivatives: &mut [Vector])  {
+    fn eval_all_derivatives(
+        &self,
+        u: f64,
+        derivative_order: usize,
+        derivatives: &mut [Vector],
+    ) {
         assert!(is_member(&self.knots, u));
-        assert!(derivatives.len() >= derivative_order+1);
-        assert!(derivative_order < BCURVE_DER_MAX, "derivative order exceeds maximum");
+        assert!(derivatives.len() >= derivative_order + 1);
+        assert!(
+            derivative_order < BCURVE_DER_MAX,
+            "derivative order exceeds maximum"
+        );
 
         if derivative_order == 0 {
             derivatives[0].copy_from(self.eval_point(u));
-        }
-        else {
+        } else {
             let p = self.order;
             let knots = &self.knots;
             let (start, _, num_basis) = splines::non_zero_basis(knots, u, p);
             let num_derivatives = derivative_order + 1;
             let dim = self.dimension;
-            let mut curve_derivatives_w: [Vector; BCURVE_DER_MAX] = std::array::from_fn(|_| zero_vec(dim + 1));
-            let mut basis_ders_arr = MultDimArray::<f64, BCURVE_DER_MAX_SQRD, 2>::new(0.0, &[num_basis, num_derivatives]);
+            let mut curve_derivatives_w: [Vector; BCURVE_DER_MAX] =
+                std::array::from_fn(|_| zero_vec(dim + 1));
+            let mut basis_ders_arr = MultDimArray::<f64, BCURVE_DER_MAX_SQRD, 2>::new(
+                0.0,
+                &[num_basis, num_derivatives],
+            );
             splines::eval_diff_all(knots, u, p, derivative_order, basis_ders_arr.as_slice_mut());
 
-            for m in 0..num_derivatives
-            {
-                for j in 0..num_basis
-                {
+            for m in 0..num_derivatives {
+                for j in 0..num_basis {
                     let dnj_dxm = basis_ders_arr[&[j, m]];
                     let point_j = &self.points_w[start + j];
                     curve_derivatives_w[m] += dnj_dxm * point_j
                 }
             }
 
-            let mut binom  = binom_coeff2(derivative_order);
-            let mut ders_loc : [Vector; BCURVE_DER_MAX] = std::array::from_fn(|_| zero_vec(dim));
+            let mut binom = binom_coeff2(derivative_order);
+            let mut ders_loc: [Vector; BCURVE_DER_MAX] = std::array::from_fn(|_| zero_vec(dim));
             let w0 = curve_derivatives_w[0][dim];
             let mut v = zero_vec(dim);
 
             for m in 0..num_derivatives {
                 v.fill(0.0);
-                v.copy_from(&curve_derivatives_w[m].rows_range(0, dim-1));
+                v.copy_from(&curve_derivatives_w[m].rows_range(0, dim - 1));
 
-                for j in 1..m+1 {
+                for j in 1..m + 1 {
                     let wj = curve_derivatives_w[j][dim];
                     let bmj = binom[&[m, j]];
-                    v -= (bmj * wj * &ders_loc[m-j]);
+                    v -= (bmj * wj * &ders_loc[m - j]);
                 }
                 ders_loc[m].copy_from(&v / w0);
                 derivatives[m].copy_from(&ders_loc[m]);
-
             }
         }
     }
 
-    fn eval_tangent(&self, u: f64, normalize: bool) -> Vector
-    {
+    fn eval_tangent(
+        &self,
+        u: f64,
+        normalize: bool,
+    ) -> Vector {
         todo!()
     }
-    fn eval_normal(&self, u: f64, normalize: bool) -> Vector {
+    fn eval_normal(
+        &self,
+        u: f64,
+        normalize: bool,
+    ) -> Vector {
         todo!()
     }
-    fn eval_binormal(&self, u: f64, normalize: bool) -> Vector {
+    fn eval_binormal(
+        &self,
+        u: f64,
+        normalize: bool,
+    ) -> Vector {
         todo!()
     }
 }

@@ -19,19 +19,28 @@ pub const KNOT_ULPS: u32 = 32;
 //}}}
 //{{{ fun: knot_lt
 /// Tolerant less-thant for knots
-fn knot_lt(u1: f64, u2: f64) -> bool {
+fn knot_lt(
+    u1: f64,
+    u2: f64,
+) -> bool {
     u1 < u2 || ulps_eq!(u1, u2, max_ulps = KNOT_ULPS)
 }
 //}}}
 //{{{ fun: knot_gt
 /// Tolerant greater-thant for knots
-fn knot_gt(u1: f64, u2: f64) -> bool {
+fn knot_gt(
+    u1: f64,
+    u2: f64,
+) -> bool {
     u1 > u2 || ulps_eq!(u1, u2, max_ulps = KNOT_ULPS)
 }
 //}}}
 //{{{ fun: knot_eq
 /// Checks if two floating-point values are considered equal within a tolerance.
-pub fn knot_eq(u1: f64, u2: f64) -> bool {
+pub fn knot_eq(
+    u1: f64,
+    u2: f64,
+) -> bool {
     ulps_eq!(u1, u2, max_ulps = KNOT_ULPS)
 }
 //}}}
@@ -49,7 +58,10 @@ pub fn knot_eq(u1: f64, u2: f64) -> bool {
 /// # Returns
 ///
 /// The index where `value` should be inserted to maintain sorted order.
-fn upper_bound(arr: &[f64], value: f64) -> usize {
+fn upper_bound(
+    arr: &[f64],
+    value: f64,
+) -> usize {
     let comp = |val: &f64| {
         if knot_lt(*val, value) {
             std::cmp::Ordering::Less
@@ -74,7 +86,10 @@ fn upper_bound(arr: &[f64], value: f64) -> usize {
 /// # Returns
 ///
 /// Returns `true` if `u` is within the range of the knot vector, `false` otherwise.
-pub fn is_member(knots: &[f64], u: f64) -> bool {
+pub fn is_member(
+    knots: &[f64],
+    u: f64,
+) -> bool {
     let umin = knots.first().unwrap();
     let umax = knots.last().unwrap();
     knot_gt(u, *umin) && knot_lt(u, *umax)
@@ -96,7 +111,11 @@ pub fn is_member(knots: &[f64], u: f64) -> bool {
 /// # Returns
 ///
 /// The index of the knot vector that contains the given parameter value `u`.
-pub fn find_span(knots: &[f64], u: f64, p: usize) -> usize {
+pub fn find_span(
+    knots: &[f64],
+    u: f64,
+    p: usize,
+) -> usize {
     let n = knots.len() - p - 1;
     if knot_eq(u, knots[n]) {
         n - 1
@@ -123,7 +142,11 @@ pub fn find_span(knots: &[f64], u: f64, p: usize) -> usize {
 /// # Returns
 ///
 /// A tuple containing the start index, end index, and the number of non-zero basis functions.
-pub fn non_zero_basis(knots: &[f64], u: f64, p: usize) -> (usize, usize, usize) {
+pub fn non_zero_basis(
+    knots: &[f64],
+    u: f64,
+    p: usize,
+) -> (usize, usize, usize) {
     debug_assert!(is_member(knots, u));
 
     let mi = knots.len() as i32;
@@ -154,7 +177,12 @@ pub fn non_zero_basis(knots: &[f64], u: f64, p: usize) -> (usize, usize, usize) 
 ///
 /// - If `shape_funs.len() < p + 1`, indicating the buffer is too small to hold the results.
 /// - If `u` is not a member of the parameter range defined by the knot vector.
-pub fn eval(knots: &[f64], u: f64, p: usize, shape_funs: &mut [f64]) {
+pub fn eval(
+    knots: &[f64],
+    u: f64,
+    p: usize,
+    shape_funs: &mut [f64],
+) {
     debug_assert!(shape_funs.len() > p, "Buffer too small to hold results");
     debug_assert!(is_member(knots, u), "u is outside of ");
 
@@ -200,7 +228,13 @@ pub fn eval(knots: &[f64], u: f64, p: usize, shape_funs: &mut [f64]) {
 /// - If `u` is not a member of the parameter range defined by the knot vector.
 /// - If `p` exceeds the maximum allowable order (`PMAX`).
 /// - If the length of `shape_ders` is less than `(p + 1)`, indicating the buffer is too small to hold the results.
-pub fn eval_diff(knots: &[f64], u: f64, p: usize, k: usize, shape_ders: &mut [f64]) {
+pub fn eval_diff(
+    knots: &[f64],
+    u: f64,
+    p: usize,
+    k: usize,
+    shape_ders: &mut [f64],
+) {
     debug_assert!(is_member(knots, u), "u is not member of parameter range");
     debug_assert!(p <= PMAX, "order exceeds max allowable");
     // debug_assert!(k <= p, "order of derivative exceeds order");
@@ -255,7 +289,13 @@ pub fn eval_diff(knots: &[f64], u: f64, p: usize, k: usize, shape_ders: &mut [f6
 }
 //}}}
 //{{{ fun: eval_diff_all
-pub fn eval_diff_all(knots: &[f64], u: f64, p: usize, k_in: usize, shape_ders: &mut [f64]) {
+pub fn eval_diff_all(
+    knots: &[f64],
+    u: f64,
+    p: usize,
+    k_in: usize,
+    shape_ders: &mut [f64],
+) {
     debug_assert!(is_member(knots, u), "u is not member of parameter range");
     debug_assert!(p < PMAX, "order exceeds max allowable");
     // debug_assert!(k <= p, "order of derivative exceeds order");
@@ -328,7 +368,10 @@ mod tests {
         }
     }
 
-    fn assert_slice_eq(actual: &[f64], expected: &[f64]) {
+    fn assert_slice_eq(
+        actual: &[f64],
+        expected: &[f64],
+    ) {
         assert_eq!(actual.len(), expected.len());
         for (actual, expected) in actual.iter().zip(expected) {
             assert_abs_diff_eq!(actual, expected, epsilon = TOLERANCE);

@@ -12,8 +12,7 @@
 //--------------------------------------------------------------------------------------------------
 
 mod common;
-mod splines;
 mod curves;
-
+mod splines;
 
 pub use curves::{BCurve, BCurveData, Curve, CurveError};

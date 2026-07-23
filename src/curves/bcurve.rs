@@ -3,24 +3,22 @@
 //! Longer description of module
 //--------------------------------------------------------------------------------------------------
 
-use core::num;
 use std::todo;
 
 //{{{ crate imports
-use crate::common::{homog, inv_homog, zero_vec, IndexHelper, Matrix, MultDimArray, Vector};
-use crate::splines::{self, eval, is_member, PMAX};
+use crate::common::{homog, inv_homog, zero_vec, MultDimArray, Vector};
+use crate::splines::{self, is_member, PMAX};
 //}}}
 //{{{ std imports
 //}}}
 //{{{ dep imports
 use thiserror::Error;
-use topohedral_linalg::{SubViewable, SubViewableMut, TransformOps, VectorOps};
+use topohedral_linalg::{SubViewable, TransformOps, VectorOps};
 //}}}
 //--------------------------------------------------------------------------------------------------
 
 pub const BCURVE_DER_MAX: usize = 5;
 pub const BCURVE_DER_MAX_SQRD: usize = 25;
-pub const BCURVE_DER_MAX_CBD: usize = 125;
 
 pub trait Curve {
     fn eval_point(
@@ -115,28 +113,6 @@ impl BCurveData {
     }
 }
 
-//{{{ fun: binom_coeff
-fn binom_coeff(
-    n: usize,
-    binom: &mut [f64],
-) {
-    debug_assert!(binom.len() >= (n + 1) * (n + 1));
-    let idx_map = IndexHelper::<2>::new(&[n + 1, n + 1]);
-    binom.fill(0.0);
-    for i in 0..n + 1 {
-        binom[idx_map.lin_index(&[i, i])] = 1.0;
-        binom[idx_map.lin_index(&[i, 0])] = 1.0;
-    }
-
-    for n2 in 2..n + 1 {
-        for k2 in 1..n2 {
-            binom[idx_map.lin_index(&[n2, k2])] = binom[idx_map.lin_index(&[n2 - 1, k2 - 1])]
-                + binom[idx_map.lin_index(&[n2 - 1, k2])];
-        }
-    }
-}
-//}}}
-
 fn binom_coeff2(n: usize) -> MultDimArray<f64, BCURVE_DER_MAX_SQRD, 2> {
     let mut binom = MultDimArray::<f64, BCURVE_DER_MAX_SQRD, 2>::new(0.0, &[n + 1, n + 1]);
     for i in 0..n + 1 {
@@ -157,8 +133,11 @@ impl BCurve {
         let dim = data.dim();
         let n = data.weights.len();
         let mut points_w = vec![zero_vec(dim + 1); n];
-        for i in 0..n {
-            points_w[i].copy_from(&homog(&data.points[i], data.weights[i]));
+        for (point_w, (point, &weight)) in points_w
+            .iter_mut()
+            .zip(data.points.iter().zip(&data.weights))
+        {
+            point_w.copy_from(&homog(point, weight));
         }
         Ok(Self {
             dimension: dim,
@@ -207,7 +186,7 @@ impl Curve for BCurve {
         derivatives: &mut [Vector],
     ) {
         assert!(is_member(&self.knots, u));
-        assert!(derivatives.len() >= derivative_order + 1);
+        assert!(derivatives.len() > derivative_order);
         assert!(
             derivative_order < BCURVE_DER_MAX,
             "derivative order exceeds maximum"
@@ -237,7 +216,7 @@ impl Curve for BCurve {
                 }
             }
 
-            let mut binom = binom_coeff2(derivative_order);
+            let binom = binom_coeff2(derivative_order);
             let mut ders_loc: [Vector; BCURVE_DER_MAX] = std::array::from_fn(|_| zero_vec(dim));
             let w0 = curve_derivatives_w[0][dim];
             let mut v = zero_vec(dim);
@@ -249,7 +228,7 @@ impl Curve for BCurve {
                 for j in 1..m + 1 {
                     let wj = curve_derivatives_w[j][dim];
                     let bmj = binom[&[m, j]];
-                    v -= (bmj * wj * &ders_loc[m - j]);
+                    v -= bmj * wj * &ders_loc[m - j];
                 }
                 ders_loc[m].copy_from(&v / w0);
                 derivatives[m].copy_from(&ders_loc[m]);
@@ -259,22 +238,22 @@ impl Curve for BCurve {
 
     fn eval_tangent(
         &self,
-        u: f64,
-        normalize: bool,
+        _u: f64,
+        _normalize: bool,
     ) -> Vector {
         todo!()
     }
     fn eval_normal(
         &self,
-        u: f64,
-        normalize: bool,
+        _u: f64,
+        _normalize: bool,
     ) -> Vector {
         todo!()
     }
     fn eval_binormal(
         &self,
-        u: f64,
-        normalize: bool,
+        _u: f64,
+        _normalize: bool,
     ) -> Vector {
         todo!()
     }

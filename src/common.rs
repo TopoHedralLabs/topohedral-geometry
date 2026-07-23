@@ -3,19 +3,17 @@
 //! Longer description of module
 //--------------------------------------------------------------------------------------------------
 
-use core::num;
 //{{{ crate imports
 //}}}
 //{{{ std imports
-use std::{ops::Index, ops::IndexMut, vec};
+use std::{ops::Index, ops::IndexMut};
 //}}}
 //{{{ dep imports
-use topohedral_linalg::{DMatrix, DVector, VecType::Col, VectorOps};
+use topohedral_linalg::{DVector, VecType::Col, VectorOps};
 //}}}
 //--------------------------------------------------------------------------------------------------
 
 pub type Vector = DVector<f64>;
-pub type Matrix = DMatrix<f64>;
 
 pub fn zero_vec(n: usize) -> Vector {
     Vector::zeros_vec(n, Col)
@@ -68,12 +66,8 @@ pub fn homog(
 /// $$
 #[repr(C)]
 pub struct IndexHelper<const N: usize> {
-    /// Dimensions of the N-dimensional array
-    dims: [usize; N],
     /// Helper array for converting a multi-dimensional index into a linear index
     lin_helper: [usize; N],
-    /// Helper array for converting a linear index into a multi-dimensional index
-    tuple_helper: [usize; N],
 }
 //}}}
 //{{{ impl: IndexHelper
@@ -81,18 +75,10 @@ impl<const N: usize> IndexHelper<N> {
     pub fn new(dims: &[usize]) -> Self {
         debug_assert!(dims.len() >= N);
 
-        let mut helper = IndexHelper::<N> {
-            dims: [0; N],
-            lin_helper: [1; N],
-            tuple_helper: [0; N],
-        };
-
-        helper.dims.clone_from_slice(&dims[0..N]);
-        helper.tuple_helper.clone_from_slice(&dims[0..N]);
+        let mut helper = IndexHelper::<N> { lin_helper: [1; N] };
 
         for i in 1..N {
             helper.lin_helper[i] = helper.lin_helper[i - 1] * dims[i - 1];
-            helper.tuple_helper[i] = helper.tuple_helper[i] * helper.tuple_helper[i - 1];
         }
         helper
     }
@@ -103,26 +89,11 @@ impl<const N: usize> IndexHelper<N> {
     ) -> usize {
         debug_assert!(indices.len() >= N);
         let mut idx = 0usize;
-        for i in 0..N {
-            idx += indices[i] * self.lin_helper[i];
+        for (&index, &stride) in indices.iter().zip(&self.lin_helper).take(N) {
+            idx += index * stride;
         }
         idx
     }
-    //..............................................................................................
-
-    pub fn tuple_index(
-        &self,
-        idx: usize,
-    ) -> [usize; N] {
-        let mut out = [0; N];
-        out[0] = idx % self.dims[0];
-        for i in 1..N {
-            let base = (idx / self.tuple_helper[i]) * self.tuple_helper[i];
-            out[i] = (idx - base) / self.tuple_helper[i - 1];
-        }
-        out
-    }
-    //.............................................................................................
 }
 //}}}
 //{{{ struct: MultiDimArray
@@ -151,10 +122,6 @@ where
             data: std::array::from_fn(|_| init_value.clone()),
             index_helper: IndexHelper::new(dims),
         }
-    }
-
-    pub fn as_slice(&self) -> &[T] {
-        &self.data
     }
 
     pub fn as_slice_mut(&mut self) -> &mut [T] {

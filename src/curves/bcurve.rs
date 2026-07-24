@@ -3,9 +3,8 @@
 //! Longer description of module
 //--------------------------------------------------------------------------------------------------
 
-use std::todo;
-
 //{{{ crate imports
+use super::common::Curve;
 use crate::common::{homog, inv_homog, zero_vec, MultDimArray, Vector};
 use crate::splines::{self, is_member, PMAX};
 //}}}
@@ -13,45 +12,12 @@ use crate::splines::{self, is_member, PMAX};
 //}}}
 //{{{ dep imports
 use thiserror::Error;
-use topohedral_linalg::{SubViewable, TransformOps, VectorOps};
+use topohedral_linalg::{tan, SubViewable, TransformOps, VectorOps};
 //}}}
 //--------------------------------------------------------------------------------------------------
 
 pub const BCURVE_DER_MAX: usize = 5;
 pub const BCURVE_DER_MAX_SQRD: usize = 25;
-
-pub trait Curve {
-    fn eval_point(
-        &self,
-        u: f64,
-    ) -> Vector;
-    fn eval_derivative(
-        &self,
-        u: f64,
-        m: usize,
-    ) -> Vector;
-    fn eval_all_derivatives(
-        &self,
-        u: f64,
-        m: usize,
-        derivatives: &mut [Vector],
-    );
-    fn eval_tangent(
-        &self,
-        u: f64,
-        normalize: bool,
-    ) -> Vector;
-    fn eval_normal(
-        &self,
-        u: f64,
-        normalize: bool,
-    ) -> Vector;
-    fn eval_binormal(
-        &self,
-        u: f64,
-        normalize: bool,
-    ) -> Vector;
-}
 
 #[derive(Debug, Error)]
 pub enum CurveError {
@@ -113,7 +79,7 @@ impl BCurveData {
     }
 }
 
-fn binom_coeff2(n: usize) -> MultDimArray<f64, BCURVE_DER_MAX_SQRD, 2> {
+fn binom_coeff(n: usize) -> MultDimArray<f64, BCURVE_DER_MAX_SQRD, 2> {
     let mut binom = MultDimArray::<f64, BCURVE_DER_MAX_SQRD, 2>::new(0.0, &[n + 1, n + 1]);
     for i in 0..n + 1 {
         binom[&[i, i]] = 1.0;
@@ -146,9 +112,25 @@ impl BCurve {
             points_w,
         })
     }
+
+    pub fn insert_knot(
+        &mut self,
+        u: f64,
+    ) {
+    }
+
+    pub fn insert_knots(
+        &mut self,
+        u: &[f64],
+    ) {
+    }
 }
 
 impl Curve for BCurve {
+    fn dimension(&self) -> usize {
+        self.dimension
+    }
+
     fn eval_point(
         &self,
         u: f64,
@@ -216,7 +198,7 @@ impl Curve for BCurve {
                 }
             }
 
-            let binom = binom_coeff2(derivative_order);
+            let binom = binom_coeff(derivative_order);
             let mut ders_loc: [Vector; BCURVE_DER_MAX] = std::array::from_fn(|_| zero_vec(dim));
             let w0 = curve_derivatives_w[0][dim];
             let mut v = zero_vec(dim);
@@ -234,27 +216,5 @@ impl Curve for BCurve {
                 derivatives[m].copy_from(&ders_loc[m]);
             }
         }
-    }
-
-    fn eval_tangent(
-        &self,
-        _u: f64,
-        _normalize: bool,
-    ) -> Vector {
-        todo!()
-    }
-    fn eval_normal(
-        &self,
-        _u: f64,
-        _normalize: bool,
-    ) -> Vector {
-        todo!()
-    }
-    fn eval_binormal(
-        &self,
-        _u: f64,
-        _normalize: bool,
-    ) -> Vector {
-        todo!()
     }
 }

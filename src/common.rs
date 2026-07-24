@@ -19,6 +19,10 @@ pub fn zero_vec(n: usize) -> Vector {
     Vector::zeros_vec(n, Col)
 }
 
+pub fn vec_from_values(values: &[f64]) -> Vector {
+    Vector::from_slice_vec(values, values.len(), Col)
+}
+
 //{{{ fun: inv_homog
 /// Performs the perspective map (inverse of homogeneuos map) from homogeneous coordinates to
 /// Euclidean coordinates.

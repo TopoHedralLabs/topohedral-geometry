@@ -12,5 +12,7 @@
 //--------------------------------------------------------------------------------------------------
 
 mod bcurve;
+mod common;
 
-pub use bcurve::{BCurve, BCurveData, Curve, CurveError};
+pub use bcurve::{BCurve, BCurveData, CurveError};
+pub use common::Curve;

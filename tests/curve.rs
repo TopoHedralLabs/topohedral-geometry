@@ -44,7 +44,7 @@ fn reference_curve() -> BCurve {
     .unwrap()
 }
 
-fn assert_point_eq(
+fn assert_vector_eq(
     actual: &DVector<f64>,
     expected: [f64; 3],
 ) {
@@ -74,7 +74,7 @@ fn eval_point_matches_bcurve_reference_values() {
         ),
         (1.0, [7.0, -4.0, 0.0]),
     ] {
-        assert_point_eq(&curve.eval_point(u), expected);
+        assert_vector_eq(&curve.eval_point(u), expected);
     }
 }
 
@@ -100,7 +100,95 @@ fn eval_derivative_matches_bcurve_reference_values() {
             [-41.25275682205748, -11.405078409315443, 10.842791252065256],
         ),
     ] {
-        assert_point_eq(&curve.eval_derivative(u, 1), first);
-        assert_point_eq(&curve.eval_derivative(u, 2), second);
+        assert_vector_eq(&curve.eval_derivative(u, 1), first);
+        assert_vector_eq(&curve.eval_derivative(u, 2), second);
+    }
+}
+
+#[test]
+fn eval_tangent_matches_bcurve_reference_values() {
+    let curve = reference_curve();
+
+    for (u, tangent, unit_tangent) in [
+        (
+            0.10101010101010102,
+            [15.230224318731947, -1.1984565555022078, 2.6470948047793534],
+            [0.9822821006792458, -0.07729514669482794, 0.1707259060089977],
+        ),
+        (
+            0.3535353535353536,
+            [11.058632590650111, -6.895698149700899, -5.639896405452172],
+            [
+                0.7787529226639769,
+                -0.48559756768015205,
+                -0.3971635528411868,
+            ],
+        ),
+        (
+            0.6565656565656566,
+            [8.942835187877419, -6.403435113552787, -4.216583224455521],
+            [
+                0.7591829321138114,
+                -0.5436059753955266,
+                -0.35795784542506437,
+            ],
+        ),
+    ] {
+        assert_vector_eq(&curve.eval_tangent(u, false), tangent);
+        assert_vector_eq(&curve.eval_tangent(u, true), unit_tangent);
+    }
+}
+
+#[test]
+fn eval_normal_matches_bcurve_reference_values() {
+    let curve = reference_curve();
+
+    // Unit Frenet normals calculated from the independently generated derivatives above.
+    for (u, expected) in [
+        (
+            0.10101010101010102,
+            [0.1671846182272756, 0.7730552109622133, -0.6119108956640404],
+        ),
+        (
+            0.3535353535353536,
+            [0.4988595590342373, 0.09548874177573577, 0.8614064316884644],
+        ),
+        (
+            0.6565656565656566,
+            [
+                -0.5777922626944596,
+                -0.8160658447803546,
+                0.01387941473344706,
+            ],
+        ),
+    ] {
+        assert_vector_eq(&curve.eval_normal(u, true), expected);
+    }
+}
+
+#[test]
+fn eval_binormal_matches_bcurve_reference_values() {
+    let curve = reference_curve();
+
+    // Unit binormals use the right-handed orientation B = T x N.
+    for (u, expected) in [
+        (
+            0.10101010101010102,
+            [-0.08468280884198517, 0.6296118654390124, 0.7722808561559965],
+        ),
+        (
+            0.3535353535353536,
+            [
+                -0.38037222007197147,
+                -0.8689516111137645,
+                0.31660712522037887,
+            ],
+        ),
+        (
+            0.6565656565656566,
+            [-0.2996621043066552, 0.19628825868401953, -0.933634587376294],
+        ),
+    ] {
+        assert_vector_eq(&curve.eval_binormal(u, true), expected);
     }
 }

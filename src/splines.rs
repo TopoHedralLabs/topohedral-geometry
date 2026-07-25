@@ -334,6 +334,20 @@ pub fn multiplicites(knots: &[f64]) -> Vec<(f64, usize)> {
     out
 }
 //}}}
+//{{{ fun: knot_multiplicity
+pub fn knot_multiplicity(
+    knots: &[f64],
+    knot: f64,
+) -> usize {
+    let mut knot_mult = 0;
+    for knot_i in knots {
+        if knot_eq(*knot_i, knot) {
+            knot_mult += 1;
+        }
+    }
+    knot_mult
+}
+//}}}
 
 //-------------------------------------------------------------------------------------------------
 //{{{ mod: tests

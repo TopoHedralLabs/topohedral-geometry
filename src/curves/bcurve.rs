@@ -3,10 +3,13 @@
 //! Longer description of module
 //--------------------------------------------------------------------------------------------------
 
+use std::array::from_fn;
+
 //{{{ crate imports
 use super::common::Curve;
 use crate::common::{homog, inv_homog, zero_vec, MultDimArray, Vector};
-use crate::splines::{self, is_member, PMAX};
+use crate::knot_multiplicity;
+use crate::splines::{self, find_span, is_member, PMAX};
 //}}}
 //{{{ std imports
 //}}}
@@ -19,17 +22,10 @@ use topohedral_linalg::{tan, SubViewable, TransformOps, VectorOps};
 pub const BCURVE_DER_MAX: usize = 5;
 pub const BCURVE_DER_MAX_SQRD: usize = 25;
 
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Clone)]
 pub enum CurveError {
     #[error("Construction error {0}")]
     ConstructionError(String),
-}
-
-pub struct BCurve {
-    dimension: usize,
-    order: usize,
-    knots: Vec<f64>,
-    points_w: Vec<Vector>,
 }
 
 #[derive(Debug, Clone)]
@@ -38,6 +34,14 @@ pub struct BCurveData {
     pub knots: Vec<f64>,
     pub points: Vec<Vector>,
     pub weights: Vec<f64>,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct BCurve {
+    dimension: usize,
+    order: usize,
+    knots: Vec<f64>,
+    points_w: Vec<Vector>,
 }
 
 impl BCurveData {
@@ -116,12 +120,68 @@ impl BCurve {
     pub fn insert_knot(
         &mut self,
         u: f64,
+        r: usize,
     ) {
+        let Self {
+            dimension: dim,
+            order: p,
+            knots: knots_before,
+            points_w: points_w_before,
+        } = self;
+
+        let knot_mul = knot_multiplicity(knots_before, u);
+        assert!(r >= 1 && r <= (*p-knot_mul));
+
+        let span = find_span(knots_before, u, *p);
+        let m_before = knots_before.len();
+        let m_after = m_before + r;
+        let n_before = points_w_before.len();
+        let n_after = n_before + r;
+
+        let mut knots_after = vec![0.0; m_after];
+        let mut points_w_after = vec![zero_vec(*dim + 1); n_after];
+
+        knots_after[0..=span].copy_from_slice(&knots_before[0..=span]);
+        knots_after[(span + 1)..=(span + r)].fill(u);
+        knots_after[(span + r + 1)..m_after].copy_from_slice(&knots_before[(span + 1)..m_before]);
+
+        for i in 0..(span - *p + 1) {
+            points_w_after[i].copy_from(&points_w_before[i]);
+        }
+        for i in
+    }
+
+    pub fn with_inserted_knot(
+        &self,
+        u: f64,
+        r: usize,
+    ) -> Self {
+        let mut new_curve = self.clone();
+        new_curve.insert_knot(u, r);
+        new_curve
     }
 
     pub fn insert_knots(
         &mut self,
         u: &[f64],
+    ) {
+    }
+
+    pub fn remove_knot(
+        &mut self,
+        u: f64,
+    ) {
+    }
+
+    pub fn elevate_degree(
+        &mut self,
+        u: f64,
+    ) {
+    }
+
+    pub fn reduce_degree(
+        &mut self,
+        u: f64,
     ) {
     }
 }

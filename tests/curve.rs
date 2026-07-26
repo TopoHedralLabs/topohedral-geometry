@@ -8,12 +8,20 @@
 //{{{ std imports
 //}}}
 //{{{ dep imports
+use approx::assert_relative_eq;
+use ctor::ctor;
+use topohedral_geometry::{BCurve, BCurveData, Curve};
+use topohedral_linalg::{DVector, VecType::Col};
+use topohedral_tracing::*;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
-use approx::assert_relative_eq;
-use topohedral_geometry::{BCurve, BCurveData, Curve};
-use topohedral_linalg::{DVector, VecType::Col};
+//{{{ fun: init_logger
+#[ctor]
+fn init_logger() {
+    init().unwrap();
+}
+//}}}
 
 fn point(values: [f64; 3]) -> DVector<f64> {
     DVector::from_slice_vec(&values, values.len(), Col)
@@ -191,4 +199,10 @@ fn eval_binormal_matches_bcurve_reference_values() {
     ] {
         assert_vector_eq(&curve.eval_binormal(u, true), expected);
     }
+}
+
+#[test]
+fn insert_knot() {
+    let mut curve = reference_curve();
+    curve.insert_knot(0.15, 1);
 }

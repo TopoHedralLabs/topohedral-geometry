@@ -3,8 +3,6 @@
 //! Longer description of module
 //--------------------------------------------------------------------------------------------------
 
-use std::array::from_fn;
-
 //{{{ crate imports
 use super::common::Curve;
 use crate::common::{homog, inv_homog, zero_vec, MultDimArray, Vector};
@@ -16,6 +14,7 @@ use crate::splines::{self, find_span, is_member, PMAX};
 //{{{ dep imports
 use thiserror::Error;
 use topohedral_linalg::{tan, SubViewable, TransformOps, VectorOps};
+use topohedral_tracing::*;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
@@ -98,6 +97,7 @@ fn binom_coeff(n: usize) -> MultDimArray<f64, BCURVE_DER_MAX_SQRD, 2> {
 }
 
 impl BCurve {
+    #[trace_fn]
     pub fn new(data: BCurveData) -> Result<Self, CurveError> {
         data.validate()?;
         let dim = data.dim();
@@ -117,11 +117,15 @@ impl BCurve {
         })
     }
 
+    #[trace_fn]
     pub fn insert_knot(
         &mut self,
         u: f64,
         r: usize,
     ) {
+        //{{{ trace
+        trace!("Inserting knot {u} {r} times into {self:?}");
+        //}}}
         let Self {
             dimension: dim,
             order: p,
@@ -130,7 +134,7 @@ impl BCurve {
         } = self;
 
         let knot_mul = knot_multiplicity(knots_before, u);
-        assert!(r >= 1 && r <= (*p-knot_mul));
+        assert!(r >= 1 && r <= (*p - knot_mul));
 
         let span = find_span(knots_before, u, *p);
         let m_before = knots_before.len();
@@ -138,8 +142,13 @@ impl BCurve {
         let n_before = points_w_before.len();
         let n_after = n_before + r;
 
+        //{{{ trace
+        trace!("knot_mul = {knot_mul} span = {span} m_before = {m_before} m_after = {m_after}");
+        //}}}
+
         let mut knots_after = vec![0.0; m_after];
         let mut points_w_after = vec![zero_vec(*dim + 1); n_after];
+        let mut point_auxiliary = vec![zero_vec(*dim + 1); *p + 1];
 
         knots_after[0..=span].copy_from_slice(&knots_before[0..=span]);
         knots_after[(span + 1)..=(span + r)].fill(u);
@@ -148,7 +157,12 @@ impl BCurve {
         for i in 0..(span - *p + 1) {
             points_w_after[i].copy_from(&points_w_before[i]);
         }
-        for i in
+        for i in (span - knot_mul)..n_before {
+            points_w_after[i + r].copy_from(&points_w_before[i]);
+        }
+        for i in 0..(*p - knot_mul + 1) {
+            point_auxiliary[i].copy_from(&points_w_after[span - *p + i]);
+        }
     }
 
     pub fn with_inserted_knot(

@@ -203,6 +203,19 @@ fn eval_binormal_matches_bcurve_reference_values() {
 
 #[test]
 fn insert_knot() {
-    let mut curve = reference_curve();
-    curve.insert_knot(0.15, 1);
+    let mut curve1 = reference_curve();
+    let mut curve2 = reference_curve();
+    curve2.insert_knot(0.15, 1);
+
+    for u in [0.0, 0.15, 0.2, 0.5, 1.0] {
+        let p1 = curve1.eval_point(u);
+        let der11 = curve1.eval_derivative(u, 1);
+        let der12 = curve1.eval_derivative(u, 2);
+        let p2 = curve2.eval_point(u);
+        let der21 = curve1.eval_derivative(u, 1);
+        let der22 = curve2.eval_derivative(u, 2);
+
+        assert_vector_eq(&p1, &p2);
+        assert_vector_eq(actual, expected);
+    }
 }

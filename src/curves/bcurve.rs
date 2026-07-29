@@ -13,7 +13,7 @@ use crate::splines::{self, find_span, is_member, PMAX};
 //}}}
 //{{{ dep imports
 use thiserror::Error;
-use topohedral_linalg::{tan, SubViewable, TransformOps, VectorOps};
+use topohedral_linalg::{SubViewable, TransformOps, VectorOps};
 use topohedral_tracing::*;
 //}}}
 //--------------------------------------------------------------------------------------------------
@@ -121,48 +121,76 @@ impl BCurve {
     pub fn insert_knot(
         &mut self,
         u: f64,
-        r: usize,
+        num_insertions: usize,
     ) {
         //{{{ trace
-        trace!("Inserting knot {u} {r} times into {self:?}");
+        trace!("Inserting knot {u} {num_insertions} times");
         //}}}
         let Self {
-            dimension: dim,
-            order: p,
+            dimension,
+            order,
             knots: knots_before,
             points_w: points_w_before,
         } = self;
 
-        let knot_mul = knot_multiplicity(knots_before, u);
-        assert!(r >= 1 && r <= (*p - knot_mul));
+        let dim = *dimension;
+        let ord = *order;
+        let knot_mult = knot_multiplicity(knots_before, u);
+        assert!(num_insertions >= 1 && num_insertions <= (ord - knot_mult));
 
-        let span = find_span(knots_before, u, *p);
-        let m_before = knots_before.len();
-        let m_after = m_before + r;
-        let n_before = points_w_before.len();
-        let n_after = n_before + r;
+        let span = find_span(knots_before, u, ord);
+        let num_knots_before = knots_before.len();
+        let num_knots_after = num_knots_before + num_insertions;
+        let num_points_before = points_w_before.len();
+        let num_points_after = num_points_before + num_insertions;
 
         //{{{ trace
-        trace!("knot_mul = {knot_mul} span = {span} m_before = {m_before} m_after = {m_after}");
+        trace!("knot_mul = {knot_mult} span = {span} m_before = {num_knots_before} m_after = {num_knots_after}");
         //}}}
 
-        let mut knots_after = vec![0.0; m_after];
-        let mut points_w_after = vec![zero_vec(*dim + 1); n_after];
-        let mut point_auxiliary = vec![zero_vec(*dim + 1); *p + 1];
+        let mut knots_after = vec![0.0; num_knots_after];
+        let mut points_w_after = vec![zero_vec(dim + 1); num_points_after];
+        let mut points_auxiliary = vec![zero_vec(dim + 1); ord + 1];
 
         knots_after[0..=span].copy_from_slice(&knots_before[0..=span]);
-        knots_after[(span + 1)..=(span + r)].fill(u);
-        knots_after[(span + r + 1)..m_after].copy_from_slice(&knots_before[(span + 1)..m_before]);
+        knots_after[(span + 1)..=(span + num_insertions)].fill(u);
+        knots_after[(span + num_insertions + 1)..num_knots_after]
+            .copy_from_slice(&knots_before[(span + 1)..num_knots_before]);
 
-        for i in 0..(span - *p + 1) {
+        for i in 0..(span - ord + 1) {
             points_w_after[i].copy_from(&points_w_before[i]);
         }
-        for i in (span - knot_mul)..n_before {
-            points_w_after[i + r].copy_from(&points_w_before[i]);
+        for i in (span - knot_mult)..num_points_before {
+            points_w_after[i + num_insertions].copy_from(&points_w_before[i]);
         }
-        for i in 0..(*p - knot_mul + 1) {
-            point_auxiliary[i].copy_from(&points_w_after[span - *p + i]);
+        for i in 0..(ord - knot_mult + 1) {
+            points_auxiliary[i].copy_from(&points_w_before[span - ord + i]);
         }
+
+        let mut p1 = zero_vec(dim + 1);
+        let mut p2 = zero_vec(dim + 1);
+
+        let mut l = span;
+        for j in 1..(num_insertions + 1) {
+            // insert the knot num_insertions times
+            l = span - ord + j;
+            for i in 0..(ord - j - knot_mult + 1) {
+                let numer = u - knots_before[l + i];
+                let denom = knots_before[i + span + 1] - knots_before[l + i];
+                let alpha = numer / denom;
+                p1.copy_from(&points_auxiliary[i + 1]);
+                p2.copy_from(&points_auxiliary[i]);
+                points_auxiliary[i].copy_from(alpha * &p1 + (1.0 - alpha) * &p2);
+            }
+            points_w_after[l].copy_from(&points_auxiliary[0]);
+            points_w_after[span + num_insertions - j + knot_mult]
+                .copy_from(&points_auxiliary[ord - j - knot_mult]);
+        }
+        for i in (l + 1)..(span - knot_mult) {
+            points_w_after[i].copy_from(&points_auxiliary[i - l]);
+        }
+        *knots_before = knots_after;
+        *points_w_before = points_w_after;
     }
 
     pub fn with_inserted_knot(

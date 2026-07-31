@@ -137,6 +137,7 @@ impl BCurve {
         let ord = *order;
         let knot_mult = knot_multiplicity(knots_before, u);
         assert!(num_insertions >= 1 && num_insertions <= (ord - knot_mult));
+        assert!(is_member(knots_before, u));
 
         let span = find_span(knots_before, u, ord);
         let num_knots_before = knots_before.len();
@@ -183,7 +184,7 @@ impl BCurve {
                 points_auxiliary[i].copy_from(alpha * &p1 + (1.0 - alpha) * &p2);
             }
             points_w_after[l].copy_from(&points_auxiliary[0]);
-            points_w_after[span + num_insertions - j + knot_mult]
+            points_w_after[span + num_insertions - j - knot_mult]
                 .copy_from(&points_auxiliary[ord - j - knot_mult]);
         }
         for i in (l + 1)..(span - knot_mult) {

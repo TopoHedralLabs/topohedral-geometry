@@ -4,13 +4,13 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
+use topohedral_geometry::{BCurve, BCurveData, Curve};
 //}}}
 //{{{ std imports
 //}}}
 //{{{ dep imports
 use approx::assert_relative_eq;
 use ctor::ctor;
-use topohedral_geometry::{BCurve, BCurveData, Curve};
 use topohedral_linalg::{DVector, VecType::Col};
 use topohedral_tracing::*;
 //}}}
@@ -54,7 +54,7 @@ fn reference_curve() -> BCurve {
 
 fn assert_vector_eq(
     actual: &DVector<f64>,
-    expected: [f64; 3],
+    expected: &DVector<f64>,
 ) {
     for (actual, expected) in actual.iter().zip(expected) {
         assert_relative_eq!(*actual, expected, epsilon = 1.0e-10, max_relative = 1.0e-10);
@@ -82,7 +82,7 @@ fn eval_point_matches_bcurve_reference_values() {
         ),
         (1.0, [7.0, -4.0, 0.0]),
     ] {
-        assert_vector_eq(&curve.eval_point(u), expected);
+        assert_vector_eq(&curve.eval_point(u), &point(expected));
     }
 }
 
@@ -108,8 +108,8 @@ fn eval_derivative_matches_bcurve_reference_values() {
             [-41.25275682205748, -11.405078409315443, 10.842791252065256],
         ),
     ] {
-        assert_vector_eq(&curve.eval_derivative(u, 1), first);
-        assert_vector_eq(&curve.eval_derivative(u, 2), second);
+        assert_vector_eq(&curve.eval_derivative(u, 1), &point(first));
+        assert_vector_eq(&curve.eval_derivative(u, 2), &point(second));
     }
 }
 
@@ -142,8 +142,8 @@ fn eval_tangent_matches_bcurve_reference_values() {
             ],
         ),
     ] {
-        assert_vector_eq(&curve.eval_tangent(u, false), tangent);
-        assert_vector_eq(&curve.eval_tangent(u, true), unit_tangent);
+        assert_vector_eq(&curve.eval_tangent(u, false), &point(tangent));
+        assert_vector_eq(&curve.eval_tangent(u, true), &point(unit_tangent));
     }
 }
 
@@ -170,7 +170,7 @@ fn eval_normal_matches_bcurve_reference_values() {
             ],
         ),
     ] {
-        assert_vector_eq(&curve.eval_normal(u, true), expected);
+        assert_vector_eq(&curve.eval_normal(u, true), &point(expected));
     }
 }
 
@@ -197,12 +197,12 @@ fn eval_binormal_matches_bcurve_reference_values() {
             [-0.2996621043066552, 0.19628825868401953, -0.933634587376294],
         ),
     ] {
-        assert_vector_eq(&curve.eval_binormal(u, true), expected);
+        assert_vector_eq(&curve.eval_binormal(u, true), &point(expected));
     }
 }
 
 #[test]
-fn insert_knot() {
+fn insert_single_knot() {
     let mut curve1 = reference_curve();
     let mut curve2 = reference_curve();
     curve2.insert_knot(0.15, 1);
@@ -216,6 +216,69 @@ fn insert_knot() {
         let der22 = curve2.eval_derivative(u, 2);
 
         assert_vector_eq(&p1, &p2);
-        assert_vector_eq(actual, expected);
+        assert_vector_eq(&der11, &der21);
+        assert_vector_eq(&der12, &der22);
     }
+}
+
+#[test]
+fn insert_two_knots() {
+    let mut curve1 = reference_curve();
+    let mut curve2 = reference_curve();
+    curve2.insert_knot(0.15, 2);
+
+    for u in [0.0, 0.15, 0.2, 0.5, 1.0] {
+        let p1 = curve1.eval_point(u);
+        let der11 = curve1.eval_derivative(u, 1);
+        let der12 = curve1.eval_derivative(u, 2);
+        let p2 = curve2.eval_point(u);
+        let der21 = curve1.eval_derivative(u, 1);
+        let der22 = curve2.eval_derivative(u, 2);
+
+        assert_vector_eq(&p1, &p2);
+        assert_vector_eq(&der11, &der21);
+        assert_vector_eq(&der12, &der22);
+    }
+}
+
+#[test]
+fn insert_three_existing_knots() {
+    let mut curve1 = reference_curve();
+    let mut curve2 = reference_curve();
+    curve2.insert_knot(0.7, 2);
+
+    for u in [0.0, 0.15, 0.2, 0.5, 1.0] {
+        let p1 = curve1.eval_point(u);
+        let der11 = curve1.eval_derivative(u, 1);
+        let der12 = curve1.eval_derivative(u, 2);
+        let p2 = curve2.eval_point(u);
+        let der21 = curve1.eval_derivative(u, 1);
+        let der22 = curve2.eval_derivative(u, 2);
+
+        assert_vector_eq(&p1, &p2);
+        assert_vector_eq(&der11, &der21);
+        assert_vector_eq(&der12, &der22);
+    }
+}
+
+#[test]
+#[should_panic(
+    expected = "assertion failed: num_insertions >= 1 && num_insertions <= (ord - knot_mult)"
+)]
+fn insert_knot_rejects_zero_insertions() {
+    reference_curve().insert_knot(0.15, 0);
+}
+
+#[test]
+#[should_panic(
+    expected = "assertion failed: num_insertions >= 1 && num_insertions <= (ord - knot_mult)"
+)]
+fn insert_knot_rejects_multiplicity_greater_than_degree() {
+    reference_curve().insert_knot(0.7, 3);
+}
+
+#[test]
+#[should_panic(expected = "assertion failed: is_member(knots_before, u)")]
+fn insert_knot_rejects_knot_outside_range() {
+    reference_curve().insert_knot(0.7, 3);
 }

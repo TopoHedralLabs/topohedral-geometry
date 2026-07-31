@@ -18,15 +18,18 @@ use topohedral_tracing::*;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
+//{{{ collection: constants
 pub const BCURVE_DER_MAX: usize = 5;
 pub const BCURVE_DER_MAX_SQRD: usize = 25;
-
+//}}}
+//{{{ enum: CurveErrro
 #[derive(Debug, Error, Clone)]
 pub enum CurveError {
     #[error("Construction error {0}")]
     ConstructionError(String),
 }
-
+//}}}
+//{{{ struct BCurveData
 #[derive(Debug, Clone)]
 pub struct BCurveData {
     pub p: usize,
@@ -34,7 +37,8 @@ pub struct BCurveData {
     pub points: Vec<Vector>,
     pub weights: Vec<f64>,
 }
-
+//}}}
+//{{{ struct BCurve
 #[derive(Debug, Clone, Default)]
 pub struct BCurve {
     dimension: usize,
@@ -42,8 +46,10 @@ pub struct BCurve {
     knots: Vec<f64>,
     points_w: Vec<Vector>,
 }
-
+//}}}
+//{{{ impl: BCurveData
 impl BCurveData {
+    #[trace_fn]
     fn validate(&self) -> Result<(), CurveError> {
         if self.p > PMAX {
             return Err(CurveError::ConstructionError("Order too high".to_string()));
@@ -81,7 +87,8 @@ impl BCurveData {
         self.points[0].len()
     }
 }
-
+//}}}
+//{{{ ufn: binom_coeff
 fn binom_coeff(n: usize) -> MultDimArray<f64, BCURVE_DER_MAX_SQRD, 2> {
     let mut binom = MultDimArray::<f64, BCURVE_DER_MAX_SQRD, 2>::new(0.0, &[n + 1, n + 1]);
     for i in 0..n + 1 {
@@ -95,8 +102,10 @@ fn binom_coeff(n: usize) -> MultDimArray<f64, BCURVE_DER_MAX_SQRD, 2> {
     }
     binom
 }
-
+//}}}
+//{{{ impl: BCurve
 impl BCurve {
+    //{{{ fun: new
     #[trace_fn]
     pub fn new(data: BCurveData) -> Result<Self, CurveError> {
         data.validate()?;
@@ -116,7 +125,8 @@ impl BCurve {
             points_w,
         })
     }
-
+    //}}}
+    //{{{ fun: insert_knot
     #[trace_fn]
     pub fn insert_knot(
         &mut self,
@@ -193,7 +203,9 @@ impl BCurve {
         *knots_before = knots_after;
         *points_w_before = points_w_after;
     }
-
+    //}}}
+    //{{{ fun: with_inserted_knot
+    #[trace_fn]
     pub fn with_inserted_knot(
         &self,
         u: f64,
@@ -203,32 +215,132 @@ impl BCurve {
         new_curve.insert_knot(u, r);
         new_curve
     }
-
-    pub fn insert_knots(
+    //}}}
+    //{{{ fun: refine_knots
+    #[trace_fn]
+    pub fn refine_knots(
         &mut self,
         u: &[f64],
     ) {
-    }
+        debug_assert!(!u.is_empty());
+        debug_assert!(u.is_sorted());
+        debug_assert!(is_member(&self.knots, u[0]));
+        debug_assert!(is_member(&self.knots, u[u.len() - 1]));
 
+        //{{{ trace
+        trace!("Inserting knots {u:?}");
+        //}}}
+
+        let Self {
+            dimension,
+            order,
+            knots: knots_before,
+            points_w: points_w_before,
+        } = self;
+
+        let dim = *dimension;
+        let ord = *order;
+
+        let n_new_knots = u.len();
+        let n_knots_before = knots_before.len();
+        let n_points_before = points_w_before.len();
+
+        let n_knots_after = n_knots_before + n_new_knots + 1;
+        let n_points_after = n_points_before + n_new_knots + 1;
+        let mut knots_after = vec![0.0; n_knots_after];
+        let mut points_w_after = vec![zero_vec(dim + 1); n_points_after];
+
+        let span_start = find_span(knots_before, *u.first().unwrap(), ord);
+        let span_end = find_span(knots_before, *u.last().unwrap(), ord) + 1;
+        //{{{ trace
+        trace!("span_start = {span_start} span_end = {span_end}");
+        //}}}
+
+        // copy knots before affected_range
+        knots_after[0..=span_start].copy_from_slice(&knots_before[0..=span_start]);
+        // copy knots after affected range
+        knots_after[(span_end + n_new_knots + ord + 1)..n_knots_after]
+            .copy_from_slice(&knots_before[(span_end + ord + 1)..n_knots_before]);
+
+        // copy points before affected range
+        for j in 0..=(span_start - ord) {
+            points_w_after[j].copy_from(&points_w_before[j]);
+        }
+        // copy points after affected range
+        for j in (span_end - 1)..n_points_after {
+            points_w_after[j + n_new_knots + 1].copy_from(&points_w_before[j]);
+        }
+
+        let mut low_lim = span_end + ord - 1;
+        let mut high_lim = span_end + ord + n_new_knots;
+
+        for j in (0..=n_new_knots).rev() {
+            //{{{ trace
+            trace_scope!("loop1");
+            trace!("...................... j = {j}");
+            //}}}
+            while u[j] <= knots_before[low_lim] && low_lim > span_start {
+                let idx_after = high_lim - ord - 1;
+                let idx_before = low_lim - ord - 1;
+                //{{{ trace
+                trace_scope!("loop2");
+                trace!(".... low_lim = {low_lim} high_lim = {high_lim}");
+                trace!("Setting new_point {idx_after} from {idx_before}");
+                //}}}
+                points_w_after[idx_after].copy_from(&points_w_before[idx_before]);
+                knots_after[high_lim] = knots_before[low_lim];
+                low_lim += 1;
+                high_lim -= 1;
+            }
+            points_w_after[high_lim - ord - 1].copy_from(&points_w_before[low_lim]);
+            for l in 1..=ord {
+                //{{{ trace
+                trace_scope!("loop3");
+                trace!("...................... j = {j}");
+                //}}}
+                let ind = high_lim - ord + l;
+                let mut alpha = knots_after[high_lim + l] - u[j];
+                if alpha.abs() == 0.0 {
+                    let tmp = points_w_after[ind].clone();
+                    points_w_after[ind - 1].copy_from(&tmp);
+                } else {
+                    alpha /= (knots_after[high_lim + l] - knots_before[low_lim - ord + l]);
+                    let tmp1 = points_w_after[ind - 1].clone();
+                    let tmp2 = points_w_after[ind].clone();
+                    points_w_after[ind - 1].copy_from(alpha * &tmp1 + (1.0 - alpha) * tmp2);
+                }
+            }
+            knots_after[high_lim] = knots_before[low_lim];
+            high_lim -= 1;
+        }
+        *knots_before = knots_after;
+        *points_w_before = points_w_after;
+    }
+    //}}}
+    //{{{ fun: remove_knot
     pub fn remove_knot(
         &mut self,
         u: f64,
     ) {
     }
-
+    //}}}
+    //{{{ fun: elevate_degree
     pub fn elevate_degree(
         &mut self,
         u: f64,
     ) {
     }
-
+    //}}}
+    //{{{ fun: reduce_degree
     pub fn reduce_degree(
         &mut self,
         u: f64,
     ) {
     }
+    //}}}
 }
-
+//}}}
+//{{{ impl Curve for Bcurve
 impl Curve for BCurve {
     fn dimension(&self) -> usize {
         self.dimension
@@ -321,3 +433,4 @@ impl Curve for BCurve {
         }
     }
 }
+//}}}

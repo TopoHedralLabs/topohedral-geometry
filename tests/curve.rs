@@ -22,11 +22,12 @@ fn init_logger() {
     init().unwrap();
 }
 //}}}
-
+//{{{ fun: point
 fn point(values: [f64; 3]) -> DVector<f64> {
     DVector::from_slice_vec(&values, values.len(), Col)
 }
-
+//}}}
+//{{{ fun: reference_curve
 fn reference_curve() -> BCurve {
     BCurve::new(BCurveData {
         p: 4,
@@ -51,7 +52,8 @@ fn reference_curve() -> BCurve {
     })
     .unwrap()
 }
-
+//}}}
+//{{{ fun: assert_vector_eq
 fn assert_vector_eq(
     actual: &DVector<f64>,
     expected: &DVector<f64>,
@@ -60,7 +62,10 @@ fn assert_vector_eq(
         assert_relative_eq!(*actual, expected, epsilon = 1.0e-10, max_relative = 1.0e-10);
     }
 }
+//}}}
 
+//{{{ collection: evaluation
+//{{{ test: eval_point_matches_bcurve_reference_values
 #[test]
 fn eval_point_matches_bcurve_reference_values() {
     let curve = reference_curve();
@@ -85,7 +90,8 @@ fn eval_point_matches_bcurve_reference_values() {
         assert_vector_eq(&curve.eval_point(u), &point(expected));
     }
 }
-
+//}}}
+//{{{ test: eval_derivative_matches_bcurve_reference_values
 #[test]
 fn eval_derivative_matches_bcurve_reference_values() {
     let curve = reference_curve();
@@ -112,7 +118,8 @@ fn eval_derivative_matches_bcurve_reference_values() {
         assert_vector_eq(&curve.eval_derivative(u, 2), &point(second));
     }
 }
-
+//}}}
+//{{{ test: eval_tangent_matches_bcurve_reference_values
 #[test]
 fn eval_tangent_matches_bcurve_reference_values() {
     let curve = reference_curve();
@@ -146,7 +153,8 @@ fn eval_tangent_matches_bcurve_reference_values() {
         assert_vector_eq(&curve.eval_tangent(u, true), &point(unit_tangent));
     }
 }
-
+//}}}
+//{{{ test: eval_normal_matces_bcurve_reference_values
 #[test]
 fn eval_normal_matches_bcurve_reference_values() {
     let curve = reference_curve();
@@ -173,7 +181,8 @@ fn eval_normal_matches_bcurve_reference_values() {
         assert_vector_eq(&curve.eval_normal(u, true), &point(expected));
     }
 }
-
+//}}}
+//{{{ test: eval_binormal_matches_bcurve_reference_values
 #[test]
 fn eval_binormal_matches_bcurve_reference_values() {
     let curve = reference_curve();
@@ -200,7 +209,11 @@ fn eval_binormal_matches_bcurve_reference_values() {
         assert_vector_eq(&curve.eval_binormal(u, true), &point(expected));
     }
 }
+//}}}
 
+//}}}
+//{{{ collection: knot insertion
+//{{{ test: insert_single_knot
 #[test]
 fn insert_single_knot() {
     let mut curve1 = reference_curve();
@@ -220,7 +233,8 @@ fn insert_single_knot() {
         assert_vector_eq(&der12, &der22);
     }
 }
-
+//}}}
+//{{{ test: insert_two_knots
 #[test]
 fn insert_two_knots() {
     let mut curve1 = reference_curve();
@@ -240,9 +254,10 @@ fn insert_two_knots() {
         assert_vector_eq(&der12, &der22);
     }
 }
-
+//}}}
+//{{{ test: insert_two_existing_knots
 #[test]
-fn insert_three_existing_knots() {
+fn insert_two_existing_knots() {
     let mut curve1 = reference_curve();
     let mut curve2 = reference_curve();
     curve2.insert_knot(0.7, 2);
@@ -260,7 +275,8 @@ fn insert_three_existing_knots() {
         assert_vector_eq(&der12, &der22);
     }
 }
-
+//}}}
+//{{{ test: insert_knot_rejects_zero_insertions
 #[test]
 #[should_panic(
     expected = "assertion failed: num_insertions >= 1 && num_insertions <= (ord - knot_mult)"
@@ -268,7 +284,8 @@ fn insert_three_existing_knots() {
 fn insert_knot_rejects_zero_insertions() {
     reference_curve().insert_knot(0.15, 0);
 }
-
+//}}}
+//{{{ test: insert_knot_rejects_multiplicity_greater_than_degree
 #[test]
 #[should_panic(
     expected = "assertion failed: num_insertions >= 1 && num_insertions <= (ord - knot_mult)"
@@ -276,9 +293,33 @@ fn insert_knot_rejects_zero_insertions() {
 fn insert_knot_rejects_multiplicity_greater_than_degree() {
     reference_curve().insert_knot(0.7, 3);
 }
-
+//}}}
+//{{{ test: insert_knot_rejects_knot_outside_range
 #[test]
 #[should_panic(expected = "assertion failed: is_member(knots_before, u)")]
 fn insert_knot_rejects_knot_outside_range() {
     reference_curve().insert_knot(0.7, 3);
 }
+//}}}
+//}}}
+//{{{ collection: knot refinement
+#[test]
+fn test_knot_refinement() {
+    let curve1 = reference_curve();
+    let mut curve2 = reference_curve();
+    curve2.refine_knots(&[0.1, 0.1, 0.15, 0.55, 0.8, 0.95]);
+
+    for u in [0.0, 0.15, 0.2, 0.5, 1.0] {
+        let p1 = curve1.eval_point(u);
+        let der11 = curve1.eval_derivative(u, 1);
+        let der12 = curve1.eval_derivative(u, 2);
+        let p2 = curve2.eval_point(u);
+        let der21 = curve1.eval_derivative(u, 1);
+        let der22 = curve2.eval_derivative(u, 2);
+
+        assert_vector_eq(&p1, &p2);
+        assert_vector_eq(&der11, &der21);
+        assert_vector_eq(&der12, &der22);
+    }
+}
+//}}}

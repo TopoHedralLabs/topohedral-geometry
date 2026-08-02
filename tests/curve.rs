@@ -298,11 +298,12 @@ fn insert_knot_rejects_multiplicity_greater_than_degree() {
 #[test]
 #[should_panic(expected = "assertion failed: is_member(knots_before, u)")]
 fn insert_knot_rejects_knot_outside_range() {
-    reference_curve().insert_knot(0.7, 3);
+    reference_curve().insert_knot(1.5, 1);
 }
 //}}}
 //}}}
 //{{{ collection: knot refinement
+//{{{ test: test_knot_refinement
 #[test]
 fn test_knot_refinement() {
     let curve1 = reference_curve();
@@ -322,4 +323,33 @@ fn test_knot_refinement() {
         assert_vector_eq(&der12, &der22);
     }
 }
+//}}}
+//{{{ test: refine_knots_matches_repeated_insertion
+#[test]
+fn refine_knots_matches_repeated_insertion() {
+    let new_knots = [0.1, 0.1, 0.15, 0.55, 0.8, 0.95];
+
+    let mut refined = reference_curve();
+    refined.refine_knots(&new_knots);
+
+    // Inserting the same knots one at a time must give the same curve.
+    let mut inserted = reference_curve();
+    for u in new_knots {
+        inserted.insert_knot(u, 1);
+    }
+
+    let original = reference_curve();
+    for i in 1..100 {
+        let u = i as f64 / 100.0;
+        assert_vector_eq(&refined.eval_point(u), &inserted.eval_point(u));
+        assert_vector_eq(&refined.eval_point(u), &original.eval_point(u));
+        for m in 1..3 {
+            assert_vector_eq(
+                &refined.eval_derivative(u, m),
+                &original.eval_derivative(u, m),
+            );
+        }
+    }
+}
+//}}}
 //}}}

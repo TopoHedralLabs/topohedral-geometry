@@ -245,8 +245,8 @@ impl BCurve {
         let n_knots_before = knots_before.len();
         let n_points_before = points_w_before.len();
 
-        let n_knots_after = n_knots_before + n_new_knots + 1;
-        let n_points_after = n_points_before + n_new_knots + 1;
+        let n_knots_after = n_knots_before + n_new_knots;
+        let n_points_after = n_points_before + n_new_knots;
         let mut knots_after = vec![0.0; n_knots_after];
         let mut points_w_after = vec![zero_vec(dim + 1); n_points_after];
 
@@ -257,24 +257,44 @@ impl BCurve {
         //}}}
 
         // copy knots before affected_range
-        knots_after[0..=span_start].copy_from_slice(&knots_before[0..=span_start]);
+        let r1 = (0, span_start);
+        //{{{ trace
+        trace!(
+            "Copying knots before affected range in ({}, {})",
+            r1.0,
+            r1.1
+        );
+        //}}}
+        knots_after[r1.0..=r1.1].copy_from_slice(&knots_before[r1.0..=r1.1]);
+
         // copy knots after affected range
-        knots_after[(span_end + n_new_knots + ord + 1)..n_knots_after]
-            .copy_from_slice(&knots_before[(span_end + ord + 1)..n_knots_before]);
+        let r2 = (span_end + ord, n_knots_before);
+        //{{{ trace
+        trace!("Copying knots after affected range in ({}, {})", r2.0, r2.1);
+        //}}}
+        knots_after[(r2.0 + n_new_knots)..n_knots_after].copy_from_slice(&knots_before[r2.0..r2.1]);
 
         // copy points before affected range
-        for j in 0..=(span_start - ord) {
+        let r3 = (0, span_start - ord);
+        //{{{ trace
+        trace!("Copying points before affected range ({} {})", r3.0, r3.1);
+        //}}}
+        for j in r3.0..=r3.1 {
             points_w_after[j].copy_from(&points_w_before[j]);
         }
         // copy points after affected range
-        for j in (span_end - 1)..n_points_after {
-            points_w_after[j + n_new_knots + 1].copy_from(&points_w_before[j]);
+        let r4 = (span_end - 1, n_points_before);
+        //{{{ trace
+        trace!("Copying points after affected range ({} {})", r4.0, r4.1);
+        //}}}
+        for j in r4.0..r4.1 {
+            points_w_after[j + n_new_knots].copy_from(&points_w_before[j]);
         }
 
         let mut low_lim = span_end + ord - 1;
-        let mut high_lim = span_end + ord + n_new_knots;
+        let mut high_lim = span_end + ord + n_new_knots - 1;
 
-        for j in (0..=n_new_knots).rev() {
+        for j in (0..n_new_knots).rev() {
             //{{{ trace
             trace_scope!("loop1");
             trace!("...................... j = {j}");
@@ -289,10 +309,11 @@ impl BCurve {
                 //}}}
                 points_w_after[idx_after].copy_from(&points_w_before[idx_before]);
                 knots_after[high_lim] = knots_before[low_lim];
-                low_lim += 1;
+                low_lim -= 1;
                 high_lim -= 1;
             }
-            points_w_after[high_lim - ord - 1].copy_from(&points_w_before[low_lim]);
+            let tmp = points_w_after[high_lim - ord].clone();
+            points_w_after[high_lim - ord - 1].copy_from(&tmp);
             for l in 1..=ord {
                 //{{{ trace
                 trace_scope!("loop3");
@@ -304,13 +325,13 @@ impl BCurve {
                     let tmp = points_w_after[ind].clone();
                     points_w_after[ind - 1].copy_from(&tmp);
                 } else {
-                    alpha /= (knots_after[high_lim + l] - knots_before[low_lim - ord + l]);
+                    alpha /= knots_after[high_lim + l] - knots_before[low_lim - ord + l];
                     let tmp1 = points_w_after[ind - 1].clone();
                     let tmp2 = points_w_after[ind].clone();
                     points_w_after[ind - 1].copy_from(alpha * &tmp1 + (1.0 - alpha) * tmp2);
                 }
             }
-            knots_after[high_lim] = knots_before[low_lim];
+            knots_after[high_lim] = u[j];
             high_lim -= 1;
         }
         *knots_before = knots_after;

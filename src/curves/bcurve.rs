@@ -5,15 +5,15 @@
 
 //{{{ crate imports
 use super::common::Curve;
-use crate::common::{homog, inv_homog, zero_vec, MultDimArray, Vector};
+use crate::common::{binom_coeff, homog, inv_homog, zero_vec, MultDimArray, Vector};
 use crate::knot_multiplicity;
-use crate::splines::{self, find_span, is_member, PMAX};
+use crate::splines::{self, find_span, is_member, PMAX, PMAX_SQR};
 //}}}
 //{{{ std imports
 //}}}
 //{{{ dep imports
 use thiserror::Error;
-use topohedral_linalg::{SubViewable, TransformOps, VectorOps};
+use topohedral_linalg::{DMatrix, SubViewable, TransformOps, VectorOps};
 use topohedral_tracing::*;
 //}}}
 //--------------------------------------------------------------------------------------------------
@@ -22,7 +22,7 @@ use topohedral_tracing::*;
 pub const BCURVE_DER_MAX: usize = 5;
 pub const BCURVE_DER_MAX_SQRD: usize = 25;
 //}}}
-//{{{ enum: CurveErrro
+//{{{ enum: CurveError
 #[derive(Debug, Error, Clone)]
 pub enum CurveError {
     #[error("Construction error {0}")]
@@ -86,21 +86,6 @@ impl BCurveData {
     fn dim(&self) -> usize {
         self.points[0].len()
     }
-}
-//}}}
-//{{{ ufn: binom_coeff
-fn binom_coeff(n: usize) -> MultDimArray<f64, BCURVE_DER_MAX_SQRD, 2> {
-    let mut binom = MultDimArray::<f64, BCURVE_DER_MAX_SQRD, 2>::new(0.0, &[n + 1, n + 1]);
-    for i in 0..n + 1 {
-        binom[&[i, i]] = 1.0;
-        binom[&[i, 0]] = 1.0;
-    }
-    for n2 in 2..n + 1 {
-        for k2 in 1..n2 {
-            binom[&[n2, k2]] = binom[&[n2 - 1, k2 - 1]] + binom[&[n2 - 1, k2]];
-        }
-    }
-    binom
 }
 //}}}
 //{{{ impl: BCurve
@@ -338,25 +323,82 @@ impl BCurve {
         *points_w_before = points_w_after;
     }
     //}}}
-    //{{{ fun: remove_knot
-    pub fn remove_knot(
-        &mut self,
-        u: f64,
-    ) {
+    //{{{ fun: with_refined_knots
+    #[trace_fn]
+    pub fn with_refined_knots(
+        &self,
+        u: &[f64],
+    ) -> BCurve {
+        let mut new_curve = self.clone();
+        new_curve.refine_knots(u);
+        new_curve
     }
     //}}}
     //{{{ fun: elevate_degree
     pub fn elevate_degree(
         &mut self,
-        u: f64,
+        q: usize,
     ) {
-    }
-    //}}}
-    //{{{ fun: reduce_degree
-    pub fn reduce_degree(
-        &mut self,
-        u: f64,
-    ) {
+        let Self {
+            dimension,
+            order,
+            knots: knots_before,
+            points_w: points_w_before,
+        } = self;
+
+        let dim = *dimension;
+        let ord_before = *order;
+        let ord_after = ord_before + q;
+
+        let n_knots_before = knots_before.len();
+        let n_knots_after = n_knots_before + q + 1;
+
+        let comb = binom_coeff::<PMAX_SQR>(ord_after);
+
+        let mut bezalfs =
+            MultDimArray::<f64, PMAX_SQR, 2>::new(0.0, &[ord_after + 1, ord_before + 1]);
+
+        bezalfs[&[0, 0]] = 1.0;
+        bezalfs[&[ord_after, ord_after]] = 1.0;
+
+        for i in 1..((ord_after / 2) + 1) {
+            let inv = comb[&[ord_after, i]];
+            let mpi = (ord_before).min(i);
+            let start = (0i64.max(i as i64 - q as i64)) as usize;
+            for j in start..mpi {
+                bezalfs[&[i, j]] =
+                    inv * comb[&[ord_before, j as usize]] * comb[&[q, i as usize - j as usize]]
+            }
+        }
+        for i in ((ord_after / 2) + 1)..ord_after {
+            let mpi = ord_before.min(i);
+            let start = (0i64.max(i as i64 - q as i64)) as usize;
+            for j in start..=mpi {
+                bezalfs[&[i, j]] = bezalfs[&[ord_after - i, ord_before - j]]
+            }
+        }
+
+        let n_knots_after_ub = (n_knots_before + 1) * (q + 1) * ord_after + 1;
+        let n_points_after_ub = (n_knots_before + 1) * (q + 1);
+        let mut knots_after = vec![0.0; n_knots_after_ub];
+        let mut point_w_after = vec![zero_vec(dim + 1); n_points_after_ub];
+
+        let mut m = ord_after;
+        let mut kind = ord_after + 1;
+        let mut r = -1;
+        let mut a = ord_before;
+        let mut b = ord_before + 1;
+        let mut cind = 1;
+        let ua = knots_before.first().unwrap();
+        point_w_after[0].copy_from(&points_w_before[0]);
+        knots_after[0..(ord_after + 1)].fill(*ua);
+
+        let mut bpts: Vec<Vector> = points_w_before[0..(ord_before + 1)]
+            .iter()
+            .cloned()
+            .collect();
+
+        let mut ebpts = vec![zero_vec(dim + 1); ord_after + 1];
     }
     //}}}
 }
@@ -434,7 +476,7 @@ impl Curve for BCurve {
                 }
             }
 
-            let binom = binom_coeff(derivative_order);
+            let binom = binom_coeff::<BCURVE_DER_MAX_SQRD>(derivative_order);
             let mut ders_loc: [Vector; BCURVE_DER_MAX] = std::array::from_fn(|_| zero_vec(dim));
             let w0 = curve_derivatives_w[0][dim];
             let mut v = zero_vec(dim);

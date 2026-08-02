@@ -13,20 +13,20 @@ use topohedral_linalg::{DVector, VecType::Col, VectorOps};
 //}}}
 //--------------------------------------------------------------------------------------------------
 
-pub type Vector = DVector<f64>;
+pub(crate) type Vector = DVector<f64>;
 
-pub fn zero_vec(n: usize) -> Vector {
+pub(crate) fn zero_vec(n: usize) -> Vector {
     Vector::zeros_vec(n, Col)
 }
 
-pub fn vec_from_values(values: &[f64]) -> Vector {
+pub(crate) fn vec_from_values(values: &[f64]) -> Vector {
     Vector::from_slice_vec(values, values.len(), Col)
 }
 
 //{{{ fun: inv_homog
 /// Performs the perspective map (inverse of homogeneuos map) from homogeneous coordinates to
 /// Euclidean coordinates.
-pub fn inv_homog(point_w: &Vector) -> Vector {
+pub(crate) fn inv_homog(point_w: &Vector) -> Vector {
     let n = point_w.len();
     let mut point = Vector::from_value_vec(0.0, n - 1, Col);
     let w = point_w[n - 1];
@@ -39,7 +39,7 @@ pub fn inv_homog(point_w: &Vector) -> Vector {
 //{{{ fun: homog
 /// Performs the inverse perspective map (homogeneous map) from Euclidean coordinates to
 /// Homogeneious coordinates.
-pub fn homog(
+pub(crate) fn homog(
     point: &Vector,
     weight: f64,
 ) -> Vector {
@@ -69,7 +69,7 @@ pub fn homog(
 /// todo
 /// $$
 #[repr(C)]
-pub struct IndexHelper<const N: usize> {
+pub(crate) struct IndexHelper<const N: usize> {
     /// Helper array for converting a multi-dimensional index into a linear index
     lin_helper: [usize; N],
 }
@@ -101,7 +101,7 @@ impl<const N: usize> IndexHelper<N> {
 }
 //}}}
 //{{{ struct: MultiDimArray
-pub struct MultDimArray<T, const MAX_SIZE: usize, const DIM: usize>
+pub(crate) struct MultDimArray<T, const MAX_SIZE: usize, const DIM: usize>
 where
     T: Clone,
 {
@@ -162,3 +162,19 @@ where
         &mut self.data[lin_index]
     }
 }
+
+//{{{ fun: binom_coeff
+pub(crate) fn binom_coeff<const MAX_SIZE: usize>(n: usize) -> MultDimArray<f64, MAX_SIZE, 2> {
+    let mut binom = MultDimArray::<f64, MAX_SIZE, 2>::new(0.0, &[n + 1, n + 1]);
+    for i in 0..n + 1 {
+        binom[&[i, i]] = 1.0;
+        binom[&[i, 0]] = 1.0;
+    }
+    for n2 in 2..n + 1 {
+        for k2 in 1..n2 {
+            binom[&[n2, k2]] = binom[&[n2 - 1, k2 - 1]] + binom[&[n2 - 1, k2]];
+        }
+    }
+    binom
+}
+//}}}

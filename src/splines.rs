@@ -14,6 +14,8 @@ use approx::ulps_eq;
 //{{{ collection: constants
 /// This is the maximum allowable order of a bspline basis. It is an arbitrary number.
 pub const PMAX: usize = 8;
+pub const PMAX_SQR: usize = 64;
+pub const PMAX_CUB: usize = 512;
 /// This is the tolerance with which two knots are considered equal
 pub const KNOT_ULPS: u32 = 32;
 //}}}

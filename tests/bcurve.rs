@@ -225,7 +225,7 @@ fn insert_single_knot() {
         let der11 = curve1.eval_derivative(u, 1);
         let der12 = curve1.eval_derivative(u, 2);
         let p2 = curve2.eval_point(u);
-        let der21 = curve1.eval_derivative(u, 1);
+        let der21 = curve2.eval_derivative(u, 1);
         let der22 = curve2.eval_derivative(u, 2);
 
         assert_vector_eq(&p1, &p2);
@@ -246,7 +246,7 @@ fn insert_two_knots() {
         let der11 = curve1.eval_derivative(u, 1);
         let der12 = curve1.eval_derivative(u, 2);
         let p2 = curve2.eval_point(u);
-        let der21 = curve1.eval_derivative(u, 1);
+        let der21 = curve2.eval_derivative(u, 1);
         let der22 = curve2.eval_derivative(u, 2);
 
         assert_vector_eq(&p1, &p2);
@@ -267,7 +267,7 @@ fn insert_two_existing_knots() {
         let der11 = curve1.eval_derivative(u, 1);
         let der12 = curve1.eval_derivative(u, 2);
         let p2 = curve2.eval_point(u);
-        let der21 = curve1.eval_derivative(u, 1);
+        let der21 = curve2.eval_derivative(u, 1);
         let der22 = curve2.eval_derivative(u, 2);
 
         assert_vector_eq(&p1, &p2);
@@ -315,7 +315,7 @@ fn test_knot_refinement() {
         let der11 = curve1.eval_derivative(u, 1);
         let der12 = curve1.eval_derivative(u, 2);
         let p2 = curve2.eval_point(u);
-        let der21 = curve1.eval_derivative(u, 1);
+        let der21 = curve2.eval_derivative(u, 1);
         let der22 = curve2.eval_derivative(u, 2);
 
         assert_vector_eq(&p1, &p2);

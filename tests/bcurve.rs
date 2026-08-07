@@ -262,6 +262,9 @@ fn insert_two_existing_knots() {
     let mut curve2 = reference_curve();
     curve2.insert_knot(0.7, 2);
 
+    assert_eq!(curve2.knots().len(), curve1.knots().len() + 2);
+    assert_eq!(curve2.points_w().len(), curve1.points_w().len() + 2);
+
     for u in [0.0, 0.15, 0.2, 0.5, 1.0] {
         let p1 = curve1.eval_point(u);
         let der11 = curve1.eval_derivative(u, 1);
@@ -349,6 +352,48 @@ fn refine_knots_matches_repeated_insertion() {
                 &original.eval_derivative(u, m),
             );
         }
+    }
+}
+//}}}
+//{{{ test: order_elevation_by_2
+#[test]
+fn test_order_elevation_by_1() {
+    let curve1 = reference_curve();
+    let mut curve2 = reference_curve();
+    curve2.elevate_degree(1);
+
+    for u in [0.0, 0.15, 0.2, 0.5, 1.0] {
+        let p1 = curve1.eval_point(u);
+        let der11 = curve1.eval_derivative(u, 1);
+        let der12 = curve1.eval_derivative(u, 2);
+        let p2 = curve2.eval_point(u);
+        let der21 = curve2.eval_derivative(u, 1);
+        let der22 = curve2.eval_derivative(u, 2);
+
+        assert_vector_eq(&p1, &p2);
+        assert_vector_eq(&der11, &der21);
+        assert_vector_eq(&der12, &der22);
+    }
+}
+//}}}
+//{{{ test: order_elevation
+#[test]
+fn test_order_elevation_by_2() {
+    let curve1 = reference_curve();
+    let mut curve2 = reference_curve();
+    curve2.elevate_degree(1);
+
+    for u in [0.0, 0.15, 0.2, 0.5, 1.0] {
+        let p1 = curve1.eval_point(u);
+        let der11 = curve1.eval_derivative(u, 1);
+        let der12 = curve1.eval_derivative(u, 2);
+        let p2 = curve2.eval_point(u);
+        let der21 = curve2.eval_derivative(u, 1);
+        let der22 = curve2.eval_derivative(u, 2);
+
+        assert_vector_eq(&p1, &p2);
+        assert_vector_eq(&der11, &der21);
+        assert_vector_eq(&der12, &der22);
     }
 }
 //}}}

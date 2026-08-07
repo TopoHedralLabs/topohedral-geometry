@@ -7,7 +7,7 @@
 use super::common::Curve;
 use crate::common::{binom_coeff, homog, inv_homog, zero_vec, MultDimArray, Vector};
 use crate::knot_multiplicity;
-use crate::splines::{self, find_span, is_member, PMAX, PMAX_SQR};
+use crate::splines::{self, find_span, is_member, knot_eq, PMAX, PMAX_SQR};
 //}}}
 //{{{ std imports
 //}}}
@@ -109,6 +109,26 @@ impl BCurve {
             knots: data.knots,
             points_w,
         })
+    }
+    //}}}
+    //{{{ fun: dimension
+    pub fn dimension(&self) -> usize {
+        self.dimension
+    }
+    //}}}
+    //{{{ fun: order
+    pub fn order(&self) -> usize {
+        self.order
+    }
+    //}}}
+    //{{{ fun: knots
+    pub fn knots(&self) -> &Vec<f64> {
+        &self.knots
+    }
+    //}}}
+    //{{{ fun: points_w
+    pub fn points_w(&self) -> &Vec<Vector> {
+        &self.points_w
     }
     //}}}
     //{{{ fun: insert_knot
@@ -339,6 +359,10 @@ impl BCurve {
         &mut self,
         q: usize,
     ) {
+        if q == 0 {
+            return;
+        }
+
         let Self {
             dimension,
             order,
@@ -349,9 +373,11 @@ impl BCurve {
         let dim = *dimension;
         let ord_before = *order;
         let ord_after = ord_before + q;
+        assert!(ord_after <= PMAX, "Elevated order exceeds maximum");
 
         let n_knots_before = knots_before.len();
-        let n_knots_after = n_knots_before + q + 1;
+        // `last_knot` is the `m` index from Algorithm A5.9 in The NURBS Book.
+        let last_knot = n_knots_before - 1;
 
         let comb = binom_coeff::<PMAX_SQR>(ord_after);
 
@@ -359,15 +385,14 @@ impl BCurve {
             MultDimArray::<f64, PMAX_SQR, 2>::new(0.0, &[ord_after + 1, ord_before + 1]);
 
         bezalfs[&[0, 0]] = 1.0;
-        bezalfs[&[ord_after, ord_after]] = 1.0;
+        bezalfs[&[ord_after, ord_before]] = 1.0;
 
         for i in 1..((ord_after / 2) + 1) {
-            let inv = comb[&[ord_after, i]];
-            let mpi = (ord_before).min(i);
+            let inv = 1.0 / comb[&[ord_after, i]];
+            let mpi = ord_before.min(i);
             let start = (0i64.max(i as i64 - q as i64)) as usize;
-            for j in start..mpi {
-                bezalfs[&[i, j]] =
-                    inv * comb[&[ord_before, j as usize]] * comb[&[q, i as usize - j as usize]]
+            for j in start..=mpi {
+                bezalfs[&[i, j]] = inv * comb[&[ord_before, j]] * comb[&[q, i - j]];
             }
         }
         for i in ((ord_after / 2) + 1)..ord_after {
@@ -383,15 +408,15 @@ impl BCurve {
         let mut knots_after = vec![0.0; n_knots_after_ub];
         let mut point_w_after = vec![zero_vec(dim + 1); n_points_after_ub];
 
-        let mut m = ord_after;
+        let mut mh = ord_after;
         let mut kind = ord_after + 1;
-        let mut r = -1;
+        let mut r = -1isize;
         let mut a = ord_before;
         let mut b = ord_before + 1;
         let mut cind = 1;
-        let ua = knots_before.first().unwrap();
+        let mut ua = *knots_before.first().unwrap();
         point_w_after[0].copy_from(&points_w_before[0]);
-        knots_after[0..(ord_after + 1)].fill(*ua);
+        knots_after[0..(ord_after + 1)].fill(ua);
 
         let mut bpts: Vec<Vector> = points_w_before[0..(ord_before + 1)]
             .iter()
@@ -399,6 +424,135 @@ impl BCurve {
             .collect();
 
         let mut ebpts = vec![zero_vec(dim + 1); ord_after + 1];
+        let mut next_bpts = vec![zero_vec(dim + 1); ord_before.saturating_sub(1)];
+
+        while b < last_knot {
+            let i = b;
+            while b < last_knot && knot_eq(knots_before[b], knots_before[b + 1]) {
+                b += 1;
+            }
+
+            let mul = b - i + 1;
+            mh += mul + q;
+            let ub = knots_before[b];
+            let oldr = r;
+            r = ord_before as isize - mul as isize;
+            let lbz = if oldr > 0 {
+                ((oldr + 2) / 2) as usize
+            } else {
+                1
+            };
+            let rbz = if r > 0 {
+                (ord_after as isize - ((r + 1) / 2)) as usize
+            } else {
+                ord_after
+            };
+
+            if r > 0 {
+                let numer = ub - ua;
+                let mut alphas = vec![0.0; ord_before.saturating_sub(1)];
+
+                for k in (mul + 1..=ord_before).rev() {
+                    alphas[k - mul - 1] = numer / (knots_before[a + k] - ua);
+                }
+                for j in 1..=(r as usize) {
+                    let save = r as usize - j;
+                    let s = mul + j;
+                    for k in (s..=ord_before).rev() {
+                        let alpha = alphas[k - s];
+                        let old_k = bpts[k].clone();
+                        let old_k_minus_one = bpts[k - 1].clone();
+                        let tmp = alpha * &old_k + (1.0 - alpha) * &old_k_minus_one;
+                        bpts[k].copy_from(&tmp);
+                    }
+                    next_bpts[save].copy_from(&bpts[ord_before]);
+                }
+            }
+
+            for i in lbz..=ord_after {
+                ebpts[i].fill(0.0);
+                let mpi = ord_before.min(i);
+                let start = i.saturating_sub(q);
+                for j in start..=mpi {
+                    let tmp = bezalfs[&[i, j]] * &bpts[j];
+                    ebpts[i] += tmp;
+                }
+            }
+
+            if oldr > 1 {
+                let mut first = kind - 2;
+                let mut last = kind;
+                let den = ub - ua;
+                let bet = (ub - knots_after[kind - 1]) / den;
+
+                for tr in 1..(oldr as usize) {
+                    let mut i = first;
+                    let mut j = last;
+                    let mut kj = j - kind + 1;
+                    while j - i > tr {
+                        if i < cind {
+                            let alf = (ub - knots_after[i]) / (ua - knots_after[i]);
+                            let old_i = point_w_after[i].clone();
+                            let old_i_minus_one = point_w_after[i - 1].clone();
+                            let tmp = alf * &old_i + (1.0 - alf) * &old_i_minus_one;
+                            point_w_after[i].copy_from(&tmp);
+                        }
+                        if j >= lbz {
+                            let threshold = kind as isize - ord_after as isize + oldr;
+                            if (j - tr) as isize <= threshold {
+                                let gam = (ub - knots_after[j - tr]) / den;
+                                let old_kj = ebpts[kj].clone();
+                                let old_kj_plus_one = ebpts[kj + 1].clone();
+                                let tmp = gam * &old_kj + (1.0 - gam) * &old_kj_plus_one;
+                                ebpts[kj].copy_from(&tmp);
+                            } else {
+                                let old_kj = ebpts[kj].clone();
+                                let old_kj_plus_one = ebpts[kj + 1].clone();
+                                let tmp = bet * &old_kj + (1.0 - bet) * &old_kj_plus_one;
+                                ebpts[kj].copy_from(&tmp);
+                            }
+                        }
+                        i += 1;
+                        j -= 1;
+                        kj -= 1;
+                    }
+                    first -= 1;
+                    last += 1;
+                }
+            }
+
+            if a != ord_before {
+                for _ in 0..(ord_after - oldr as usize) {
+                    knots_after[kind] = ua;
+                    kind += 1;
+                }
+            }
+            for j in lbz..=rbz {
+                point_w_after[cind].copy_from(&ebpts[j]);
+                cind += 1;
+            }
+
+            if b < last_knot {
+                for j in 0..(r as usize) {
+                    bpts[j].copy_from(&next_bpts[j]);
+                }
+                for j in (r as usize)..=ord_before {
+                    bpts[j].copy_from(&points_w_before[b - ord_before + j]);
+                }
+                a = b;
+                b += 1;
+                ua = ub;
+            } else {
+                for i in 0..=ord_after {
+                    knots_after[kind + i] = ub;
+                }
+            }
+        }
+
+        let nh = mh - ord_after - 1;
+        *order = ord_after;
+        *knots_before = knots_after[..=mh].to_vec();
+        *points_w_before = point_w_after[..=nh].to_vec();
     }
     //}}}
 }

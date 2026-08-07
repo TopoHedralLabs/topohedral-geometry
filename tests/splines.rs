@@ -1,6 +1,6 @@
 use approx::assert_abs_diff_eq;
 use topohedral_geometry::{
-    knot_multiplicity, spline_eval, spline_eval_diff, spline_eval_diff_all, spline_multiplicities,
+    knot_multiplicities, knot_multiplicity, spline_eval, spline_eval_diff, spline_eval_diff_all,
 };
 
 const U0: f64 = 0.6060606060606061;
@@ -226,7 +226,7 @@ fn basis_derivatives_match_reference_data() {
 #[test]
 fn knot_multiplicities_match_reference_knot_vector() {
     assert_eq!(
-        spline_multiplicities(KNOTS_P4),
+        knot_multiplicities(KNOTS_P4),
         vec![(0.0, 5), (1.0, 1), (2.0, 1), (4.0, 2), (5.0, 1), (6.0, 5)],
     );
 }

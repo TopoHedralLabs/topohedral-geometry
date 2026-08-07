@@ -4,7 +4,7 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
-use topohedral_geometry::{BCurve, BCurveData, Curve};
+use topohedral_geometry::{knot_multiplicities, BCurve, BCurveData, Curve};
 //}}}
 //{{{ std imports
 //}}}
@@ -359,8 +359,20 @@ fn refine_knots_matches_repeated_insertion() {
 #[test]
 fn test_order_elevation_by_1() {
     let curve1 = reference_curve();
+    let num_unique_knots = knot_multiplicities(curve1.knots()).len();
+
     let mut curve2 = reference_curve();
     curve2.elevate_degree(1);
+
+    assert_eq!(
+        curve2.knots().len(),
+        curve1.knots().len() + num_unique_knots
+    );
+
+    assert_eq!(
+        curve2.points_w().len(),
+        curve1.points_w().len() + num_unique_knots - 1
+    );
 
     for u in [0.0, 0.15, 0.2, 0.5, 1.0] {
         let p1 = curve1.eval_point(u);
@@ -380,8 +392,20 @@ fn test_order_elevation_by_1() {
 #[test]
 fn test_order_elevation_by_2() {
     let curve1 = reference_curve();
+    let num_unique_knots = knot_multiplicities(curve1.knots()).len();
+
     let mut curve2 = reference_curve();
-    curve2.elevate_degree(1);
+    curve2.elevate_degree(2);
+
+    assert_eq!(
+        curve2.knots().len(),
+        curve1.knots().len() + 2 * num_unique_knots
+    );
+
+    assert_eq!(
+        curve2.points_w().len(),
+        curve1.points_w().len() + 2 * (num_unique_knots - 1)
+    );
 
     for u in [0.0, 0.15, 0.2, 0.5, 1.0] {
         let p1 = curve1.eval_point(u);

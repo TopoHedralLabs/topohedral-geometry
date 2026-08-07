@@ -13,6 +13,8 @@
 
 mod bcurve;
 mod common;
+mod line;
 
 pub use bcurve::{BCurve, BCurveData, CurveError};
 pub use common::Curve;
+pub use line::Line;

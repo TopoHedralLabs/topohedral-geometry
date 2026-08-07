@@ -26,6 +26,7 @@ impl Line {
         origin: Vector,
         direction: Vector,
     ) -> Self {
+        assert_eq!(origin.len(), direction.len());
         Self { origin, direction }
     }
 }
@@ -54,18 +55,6 @@ impl Curve for Line {
             self.direction.clone()
         } else {
             zero_vec(self.dimension())
-        }
-    }
-
-    fn eval_all_derivatives(
-        &self,
-        u: f64,
-        m: usize,
-        derivatives: &mut [Vector],
-    ) {
-        assert_eq!(derivatives.len(), m + 1);
-        for i in 0..=m {
-            derivatives[i].copy_from(self.eval_derivative(u, i));
         }
     }
 }

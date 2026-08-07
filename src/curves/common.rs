@@ -36,7 +36,12 @@ pub trait Curve {
         u: f64,
         m: usize,
         derivatives: &mut [Vector],
-    );
+    ) {
+        assert_eq!(derivatives.len(), m + 1);
+        for i in 0..=m {
+            derivatives[i].copy_from(&self.eval_derivative(u, i));
+        }
+    }
 
     fn eval_tangent(
         &self,
@@ -103,5 +108,27 @@ pub trait Curve {
                 panic!("Unsupported dimensionality")
             }
         }
+    }
+
+    fn eval_curvature(
+        &self,
+        u: f64,
+    ) -> f64 {
+        0.0
+    }
+
+    fn eval_torsion(
+        &self,
+        u: f64,
+    ) -> f64 {
+        0.0
+    }
+
+    fn eval_arclen(
+        &self,
+        ustart: f64,
+        uend: f64,
+    ) -> f64 {
+        0.0
     }
 }

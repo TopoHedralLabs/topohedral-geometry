@@ -12,9 +12,11 @@
 //--------------------------------------------------------------------------------------------------
 
 mod bcurve;
+mod circle;
 mod common;
 mod line;
 
 pub use bcurve::{BCurve, BCurveData, CurveError};
+pub use circle::Circle;
 pub use common::Curve;
 pub use line::Line;

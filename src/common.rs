@@ -13,16 +13,21 @@ use topohedral_linalg::{DVector, VecType::Col, VectorOps};
 //}}}
 //--------------------------------------------------------------------------------------------------
 
-pub(crate) type Vector = DVector<f64>;
+pub const PI: f64 = std::f64::consts::PI;
 
+//{{{ type: Vector
+pub(crate) type Vector = DVector<f64>;
+//}}}
+//{{{ fun: zero_vec
 pub(crate) fn zero_vec(n: usize) -> Vector {
     Vector::zeros_vec(n, Col)
 }
-
+//}}}
+//{{{ fun: vec_from_values
 pub(crate) fn vec_from_values(values: &[f64]) -> Vector {
     Vector::from_slice_vec(values, values.len(), Col)
 }
-
+//}}}
 //{{{ fun: inv_homog
 /// Performs the perspective map (inverse of homogeneuos map) from homogeneous coordinates to
 /// Euclidean coordinates.
@@ -109,7 +114,7 @@ where
     index_helper: IndexHelper<DIM>,
 }
 //}}}
-
+//{{{ impl: MultDimArray
 impl<T, const MAX_SIZE: usize, const DIM: usize> MultDimArray<T, MAX_SIZE, DIM>
 where
     T: Clone,
@@ -132,7 +137,8 @@ where
         &mut self.data
     }
 }
-
+//}}}
+//{{{ impl: Index for MultDimArray
 impl<T, const MAX_SIZE: usize, const DIM: usize> Index<&[usize; DIM]>
     for MultDimArray<T, MAX_SIZE, DIM>
 where
@@ -148,7 +154,8 @@ where
         &self.data[lin_index]
     }
 }
-
+//}}}
+//{{{ impl: IndexMut for MultDimArray
 impl<T, const MAX_SIZE: usize, const DIM: usize> IndexMut<&[usize; DIM]>
     for MultDimArray<T, MAX_SIZE, DIM>
 where
@@ -162,7 +169,7 @@ where
         &mut self.data[lin_index]
     }
 }
-
+//}}}
 //{{{ fun: binom_coeff
 pub(crate) fn binom_coeff<const MAX_SIZE: usize>(n: usize) -> MultDimArray<f64, MAX_SIZE, 2> {
     let mut binom = MultDimArray::<f64, MAX_SIZE, 2>::new(0.0, &[n + 1, n + 1]);

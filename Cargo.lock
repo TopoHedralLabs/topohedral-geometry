@@ -374,35 +374,21 @@ dependencies = [
  "serde_json",
  "thiserror",
  "topohedral-linalg",
- "topohedral-tracing 0.2.0",
+ "topohedral-tracing",
 ]
 
 [[package]]
 name = "topohedral-linalg"
-version = "4.1.0"
+version = "5.0.0"
 source = "sparse+https://cargo.cloudsmith.io/topohedrallabs/topohedral/"
-checksum = "b88bd1ec6387e25499a102d68df850f536a531721cf2b63978e9d2cfbf0619b7"
+checksum = "110a4e89a75f10303be3fa1eb1e4bc7d929c6c2e1b6ee56a26087ff2b161be3c"
 dependencies = [
  "cblas",
  "lapack",
- "log",
  "num-complex",
  "rand",
  "serde",
- "serde_json",
  "thiserror",
- "topohedral-tracing 0.1.1",
-]
-
-[[package]]
-name = "topohedral-tracing"
-version = "0.1.1"
-source = "sparse+https://cargo.cloudsmith.io/topohedrallabs/topohedral/"
-checksum = "310c1a5218909a039b82754e8be05f880dbeff23cef62b5387fe558d5f263e93"
-dependencies = [
- "colored",
- "log",
- "topohedral-tracing-macros 0.0.0",
 ]
 
 [[package]]
@@ -413,18 +399,7 @@ checksum = "a14b08466c968011d754ddea91b21e32900590791bd459e92439cf1698cc4d9e"
 dependencies = [
  "colored",
  "log",
- "topohedral-tracing-macros 0.2.0",
-]
-
-[[package]]
-name = "topohedral-tracing-macros"
-version = "0.0.0"
-source = "sparse+https://cargo.cloudsmith.io/topohedrallabs/topohedral/"
-checksum = "5d63579a68662d94f511aa33bc27e5108a0e40575d9015944cb108258c4138fe"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn 2.0.119",
+ "topohedral-tracing-macros",
 ]
 
 [[package]]

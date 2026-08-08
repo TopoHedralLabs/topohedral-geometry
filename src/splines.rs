@@ -14,6 +14,7 @@ use approx::ulps_eq;
 //{{{ collection: constants
 /// This is the maximum allowable order of a bspline basis. It is an arbitrary number.
 pub const PMAX: usize = 8;
+pub const PMAX_SQR: usize = 64;
 /// This is the tolerance with which two knots are considered equal
 pub const KNOT_ULPS: u32 = 32;
 //}}}
@@ -332,6 +333,20 @@ pub fn multiplicites(knots: &[f64]) -> Vec<(f64, usize)> {
 
     out.push((cur_knot, cur_mult + 1));
     out
+}
+//}}}
+//{{{ fun: knot_multiplicity
+pub fn knot_multiplicity(
+    knots: &[f64],
+    knot: f64,
+) -> usize {
+    let mut knot_mult = 0;
+    for knot_i in knots {
+        if knot_eq(*knot_i, knot) {
+            knot_mult += 1;
+        }
+    }
+    knot_mult
 }
 //}}}
 

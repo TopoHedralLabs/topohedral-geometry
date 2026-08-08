@@ -8,7 +8,7 @@
     "editor.foldingStrategy": "auto",
     "editor.defaultFoldingRangeProvider": "TopoHedralLabs.topohedral-vscode",
     "rust-analyzer.cargo.features": [
-        "enable_trace"
+        "trace"
     ],
     "rust-analyzer.cargo.buildScripts.useRustcWrapper": true,
     "rust-analyzer.cargo.extraEnv": {

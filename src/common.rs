@@ -9,24 +9,33 @@
 use std::{ops::Index, ops::IndexMut};
 //}}}
 //{{{ dep imports
-use topohedral_linalg::{DVector, VecType::Col, VectorOps};
+use topohedral_linalg::SCVector;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
-pub type Vector = DVector<f64>;
-
-pub fn zero_vec(n: usize) -> Vector {
-    Vector::zeros_vec(n, Col)
+//{{{ types: Vec3 and Vec4
+/// A point or vector in Euclidean 3-space.
+pub type Vec3 = SCVector<f64, 3>;
+/// A point or vector in homogeneous 3-space.
+pub type Vec4 = SCVector<f64, 4>;
+//}}}
+//{{{ fun: zero_vec
+pub(crate) fn zero_vec() -> Vec3 {
+    Vec3::zeros()
 }
-
+//}}}
+//{{{ fun: zero_vec4
+pub(crate) fn zero_vec4() -> Vec4 {
+    Vec4::zeros()
+}
+//}}}
 //{{{ fun: inv_homog
 /// Performs the perspective map (inverse of homogeneuos map) from homogeneous coordinates to
 /// Euclidean coordinates.
-pub fn inv_homog(point_w: &Vector) -> Vector {
-    let n = point_w.len();
-    let mut point = Vector::from_value_vec(0.0, n - 1, Col);
-    let w = point_w[n - 1];
-    for i in 0..n - 1 {
+pub(crate) fn inv_homog(point_w: &Vec4) -> Vec3 {
+    let mut point = Vec3::zeros();
+    let w = point_w[3];
+    for i in 0..3 {
         point[i] = point_w[i] / w;
     }
     point
@@ -35,16 +44,15 @@ pub fn inv_homog(point_w: &Vector) -> Vector {
 //{{{ fun: homog
 /// Performs the inverse perspective map (homogeneous map) from Euclidean coordinates to
 /// Homogeneious coordinates.
-pub fn homog(
-    point: &Vector,
+pub(crate) fn homog(
+    point: &Vec3,
     weight: f64,
-) -> Vector {
-    let n = point.len();
-    let mut point_w = Vector::from_value_vec(0.0, n + 1, Col);
-    for i in 0..n {
+) -> Vec4 {
+    let mut point_w = Vec4::zeros();
+    for i in 0..3 {
         point_w[i] = weight * point[i];
     }
-    point_w[n] = weight;
+    point_w[3] = weight;
     point_w
 }
 //}}}
@@ -65,7 +73,7 @@ pub fn homog(
 /// todo
 /// $$
 #[repr(C)]
-pub struct IndexHelper<const N: usize> {
+pub(crate) struct IndexHelper<const N: usize> {
     /// Helper array for converting a multi-dimensional index into a linear index
     lin_helper: [usize; N],
 }
@@ -97,7 +105,7 @@ impl<const N: usize> IndexHelper<N> {
 }
 //}}}
 //{{{ struct: MultiDimArray
-pub struct MultDimArray<T, const MAX_SIZE: usize, const DIM: usize>
+pub(crate) struct MultDimArray<T, const MAX_SIZE: usize, const DIM: usize>
 where
     T: Clone,
 {
@@ -105,7 +113,7 @@ where
     index_helper: IndexHelper<DIM>,
 }
 //}}}
-
+//{{{ impl: MultDimArray
 impl<T, const MAX_SIZE: usize, const DIM: usize> MultDimArray<T, MAX_SIZE, DIM>
 where
     T: Clone,
@@ -128,7 +136,8 @@ where
         &mut self.data
     }
 }
-
+//}}}
+//{{{ impl: Index for MultDimArray
 impl<T, const MAX_SIZE: usize, const DIM: usize> Index<&[usize; DIM]>
     for MultDimArray<T, MAX_SIZE, DIM>
 where
@@ -144,7 +153,8 @@ where
         &self.data[lin_index]
     }
 }
-
+//}}}
+//{{{ impl: IndexMut for MultDimArray
 impl<T, const MAX_SIZE: usize, const DIM: usize> IndexMut<&[usize; DIM]>
     for MultDimArray<T, MAX_SIZE, DIM>
 where
@@ -158,3 +168,19 @@ where
         &mut self.data[lin_index]
     }
 }
+//}}}
+//{{{ fun: binom_coeff
+pub(crate) fn binom_coeff<const MAX_SIZE: usize>(n: usize) -> MultDimArray<f64, MAX_SIZE, 2> {
+    let mut binom = MultDimArray::<f64, MAX_SIZE, 2>::new(0.0, &[n + 1, n + 1]);
+    for i in 0..n + 1 {
+        binom[&[i, i]] = 1.0;
+        binom[&[i, 0]] = 1.0;
+    }
+    for n2 in 2..n + 1 {
+        for k2 in 1..n2 {
+            binom[&[n2, k2]] = binom[&[n2 - 1, k2 - 1]] + binom[&[n2 - 1, k2]];
+        }
+    }
+    binom
+}
+//}}}

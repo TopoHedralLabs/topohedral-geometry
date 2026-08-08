@@ -4,11 +4,7 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
-use crate::{
-    common::{zero_vec, Vec3},
-    utils::is_unit_vector,
-    Curve,
-};
+use crate::{common::Vec3, utils::is_unit_vector, Curve};
 //}}}
 //{{{ std imports
 //}}}
@@ -47,7 +43,7 @@ impl Curve for Line {
         } else if m == 1 {
             self.direction
         } else {
-            zero_vec()
+            Vec3::zeros()
         }
     }
 }

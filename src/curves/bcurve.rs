@@ -5,9 +5,7 @@
 
 //{{{ crate imports
 use super::common::Curve;
-use crate::common::{
-    binom_coeff, homog, inv_homog, zero_vec, zero_vec4, StaticMultDimArray, Vec3, Vec4,
-};
+use crate::common::{binom_coeff, homog, inv_homog, StatArray, Vec3, Vec4};
 use crate::knot_multiplicity;
 use crate::splines::{self, find_span, is_member, knot_eq, PMAX, PMAX_SQR};
 //}}}
@@ -60,7 +58,7 @@ impl BCurve {
         assert!(!points.is_empty(), "At least one point is required");
 
         let n = weights.len();
-        let mut points_w = vec![zero_vec4(); n];
+        let mut points_w = vec![Vec4::zeros(); n];
         for (point_w, (point, &weight)) in points_w.iter_mut().zip(points.iter().zip(&weights)) {
             point_w.copy_from(&homog(point, weight));
         }
@@ -123,8 +121,8 @@ impl BCurve {
         //}}}
 
         let mut knots_after = vec![0.0; num_knots_after];
-        let mut points_w_after = vec![zero_vec4(); num_points_after];
-        let mut points_auxiliary = vec![zero_vec4(); ord + 1];
+        let mut points_w_after = vec![Vec4::zeros(); num_points_after];
+        let mut points_auxiliary = vec![Vec4::zeros(); ord + 1];
 
         knots_after[0..=span].copy_from_slice(&knots_before[0..=span]);
         knots_after[(span + 1)..=(span + num_insertions)].fill(u);
@@ -141,8 +139,8 @@ impl BCurve {
             points_auxiliary[i].copy_from(&points_w_before[span - ord + i]);
         }
 
-        let mut p1 = zero_vec4();
-        let mut p2 = zero_vec4();
+        let mut p1 = Vec4::zeros();
+        let mut p2 = Vec4::zeros();
 
         let mut l = span;
         for j in 1..(num_insertions + 1) {
@@ -209,7 +207,7 @@ impl BCurve {
         let n_knots_after = n_knots_before + n_new_knots;
         let n_points_after = n_points_before + n_new_knots;
         let mut knots_after = vec![0.0; n_knots_after];
-        let mut points_w_after = vec![zero_vec4(); n_points_after];
+        let mut points_w_after = vec![Vec4::zeros(); n_points_after];
 
         let span_start = find_span(knots_before, *u.first().unwrap(), ord);
         let span_end = find_span(knots_before, *u.last().unwrap(), ord) + 1;
@@ -335,8 +333,7 @@ impl BCurve {
 
         let comb = binom_coeff::<PMAX_SQR>(ord_after);
 
-        let mut bezalfs =
-            StaticMultDimArray::<f64, PMAX_SQR, 2>::new(0.0, &[ord_after + 1, ord_before + 1]);
+        let mut bezalfs = StatArray::<f64, PMAX_SQR, 2>::new(0.0, &[ord_after + 1, ord_before + 1]);
 
         bezalfs[&[0, 0]] = 1.0;
         bezalfs[&[ord_after, ord_before]] = 1.0;
@@ -360,7 +357,7 @@ impl BCurve {
         let n_knots_after_ub = (n_knots_before + 1) * (q + 1) * ord_after + 1;
         let n_points_after_ub = (n_knots_before + 1) * (q + 1);
         let mut knots_after = vec![0.0; n_knots_after_ub];
-        let mut point_w_after = vec![zero_vec4(); n_points_after_ub];
+        let mut point_w_after = vec![Vec4::zeros(); n_points_after_ub];
 
         let mut mh = ord_after;
         let mut kind = ord_after + 1;
@@ -374,8 +371,8 @@ impl BCurve {
 
         let mut bpts: Vec<Vec4> = points_w_before[0..(ord_before + 1)].to_vec();
 
-        let mut ebpts = vec![zero_vec4(); ord_after + 1];
-        let mut next_bpts = vec![zero_vec4(); ord_before.saturating_sub(1)];
+        let mut ebpts = vec![Vec4::zeros(); ord_after + 1];
+        let mut next_bpts = vec![Vec4::zeros(); ord_before.saturating_sub(1)];
 
         while b < last_knot {
             let i = b;
@@ -518,7 +515,7 @@ impl Curve for BCurve {
     ) -> Vec3 {
         assert!(is_member(&self.knots, u));
 
-        let mut point_w = zero_vec4();
+        let mut point_w = Vec4::zeros();
         let (start, end, _) = splines::non_zero_basis(&self.knots, u, self.order);
 
         let mut bases_funs = [0.0; PMAX];
@@ -536,7 +533,7 @@ impl Curve for BCurve {
     ) -> Vec3 {
         assert!(m < BCURVE_DER_MAX, "derivative order exceeds maximum");
 
-        let mut derivatives: [Vec3; BCURVE_DER_MAX] = std::array::from_fn(|_| zero_vec());
+        let mut derivatives: [Vec3; BCURVE_DER_MAX] = std::array::from_fn(|_| Vec3::zeros());
         self.eval_all_derivatives(u, m, &mut derivatives[..=m]);
         derivatives[m]
     }
@@ -562,11 +559,9 @@ impl Curve for BCurve {
             let (start, _, num_basis) = splines::non_zero_basis(knots, u, p);
             let num_derivatives = derivative_order + 1;
             let mut curve_derivatives_w: [Vec4; BCURVE_DER_MAX] =
-                std::array::from_fn(|_| zero_vec4());
-            let mut basis_ders_arr = StaticMultDimArray::<f64, BCURVE_DER_MAX_SQRD, 2>::new(
-                0.0,
-                &[num_basis, num_derivatives],
-            );
+                std::array::from_fn(|_| Vec4::zeros());
+            let mut basis_ders_arr =
+                StatArray::<f64, BCURVE_DER_MAX_SQRD, 2>::new(0.0, &[num_basis, num_derivatives]);
             splines::eval_diff_all(knots, u, p, derivative_order, basis_ders_arr.as_slice_mut());
 
             for m in 0..num_derivatives {
@@ -578,9 +573,9 @@ impl Curve for BCurve {
             }
 
             let binom = binom_coeff::<BCURVE_DER_MAX_SQRD>(derivative_order);
-            let mut ders_loc: [Vec3; BCURVE_DER_MAX] = std::array::from_fn(|_| zero_vec());
+            let mut ders_loc: [Vec3; BCURVE_DER_MAX] = std::array::from_fn(|_| Vec3::zeros());
             let w0 = curve_derivatives_w[0][3];
-            let mut v = zero_vec();
+            let mut v = Vec3::zeros();
 
             for m in 0..num_derivatives {
                 v.fill(0.0);

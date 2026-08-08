@@ -6,7 +6,7 @@
 use topohedral_linalg::VectorOps;
 
 //{{{ crate imports
-use crate::common::{zero_vec, Vec3};
+use crate::common::Vec3;
 //}}}
 //{{{ std imports
 //}}}
@@ -59,7 +59,7 @@ pub trait Curve {
         u: f64,
         normalize: bool,
     ) -> Vec3 {
-        let mut curve_dirivatives: [Vec3; 3] = std::array::from_fn(|_| zero_vec());
+        let mut curve_dirivatives: [Vec3; 3] = std::array::from_fn(|_| Vec3::zeros());
         self.eval_all_derivatives(u, 2, &mut curve_dirivatives);
 
         let velocity = &curve_dirivatives[1];

@@ -85,3 +85,33 @@ fn tangent_and_frame_follow_the_circle_orientation() {
     assert_vector_eq(&circle.eval_normal(0.0, true), &[0.0, -1.0, 0.0]);
     assert_vector_eq(&circle.eval_binormal(0.0, true), &[0.0, 0.0, -1.0]);
 }
+
+#[test]
+#[should_panic]
+fn rejects_mismatched_center_and_normal_dimensions() {
+    Circle::new(vector(&[0.0, 0.0, 0.0]), vector(&[0.0, 0.0]), 1.0);
+}
+
+#[test]
+#[should_panic]
+fn rejects_non_three_dimensional_inputs() {
+    Circle::new(vector(&[0.0, 0.0]), vector(&[0.0, 1.0]), 1.0);
+}
+
+#[test]
+#[should_panic]
+fn rejects_zero_normal() {
+    Circle::new(vector(&[0.0, 0.0, 0.0]), vector(&[0.0, 0.0, 0.0]), 1.0);
+}
+
+#[test]
+#[should_panic]
+fn rejects_zero_radius() {
+    Circle::new(vector(&[0.0, 0.0, 0.0]), vector(&[0.0, 0.0, 1.0]), 0.0);
+}
+
+#[test]
+#[should_panic]
+fn rejects_negative_radius() {
+    Circle::new(vector(&[0.0, 0.0, 0.0]), vector(&[0.0, 0.0, 1.0]), -1.0);
+}

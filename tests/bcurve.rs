@@ -4,14 +4,13 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
-use topohedral_geometry::{knot_multiplicities, BCurve, BCurveData, Curve};
+use topohedral_geometry::{knot_multiplicities, BCurve, BCurveData, Curve, Vec3};
 //}}}
 //{{{ std imports
 //}}}
 //{{{ dep imports
 use approx::assert_relative_eq;
 use ctor::ctor;
-use topohedral_linalg::{DVector, VecType::Col};
 use topohedral_tracing::*;
 //}}}
 //--------------------------------------------------------------------------------------------------
@@ -23,8 +22,8 @@ fn init_logger() {
 }
 //}}}
 //{{{ fun: point
-fn point(values: [f64; 3]) -> DVector<f64> {
-    DVector::from_slice_vec(&values, values.len(), Col)
+fn point(values: [f64; 3]) -> Vec3 {
+    Vec3::from_col_slice(&values)
 }
 //}}}
 //{{{ fun: reference_curve
@@ -55,8 +54,8 @@ fn reference_curve() -> BCurve {
 //}}}
 //{{{ fun: assert_vector_eq
 fn assert_vector_eq(
-    actual: &DVector<f64>,
-    expected: &DVector<f64>,
+    actual: &Vec3,
+    expected: &Vec3,
 ) {
     for (actual, expected) in actual.iter().zip(expected) {
         assert_relative_eq!(*actual, expected, epsilon = 1.0e-10, max_relative = 1.0e-10);

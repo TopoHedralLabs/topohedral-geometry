@@ -16,6 +16,7 @@ mod curves;
 mod splines;
 mod utils;
 
+pub use common::{Vec3, Vec4};
 pub use curves::{BCurve, BCurveData, Circle, Curve, CurveError, Ellipse, Line};
 pub use splines::{
     eval as spline_eval, eval_diff as spline_eval_diff, eval_diff_all as spline_eval_diff_all,

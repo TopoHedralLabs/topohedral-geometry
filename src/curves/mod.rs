@@ -16,6 +16,7 @@ mod circle;
 mod common;
 mod ellipse;
 mod line;
+mod parabola;
 
 pub use bcurve::{BCurve, BCurveData, CurveError};
 pub use circle::Circle;

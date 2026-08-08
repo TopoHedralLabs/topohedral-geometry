@@ -4,7 +4,7 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
-use crate::common::Vector;
+use crate::common::Vec3;
 use crate::utils::orthogonal_vector;
 use crate::Curve;
 //}}}
@@ -16,20 +16,18 @@ use topohedral_linalg::VectorOps;
 //--------------------------------------------------------------------------------------------------
 
 pub struct Circle {
-    center: Vector,
+    center: Vec3,
     radius: f64,
-    x_axis: Vector,
-    y_axis: Vector,
+    x_axis: Vec3,
+    y_axis: Vec3,
 }
 
 impl Circle {
     pub fn new(
-        center: Vector,
-        normal: Vector,
+        center: Vec3,
+        normal: Vec3,
         radius: f64,
     ) -> Self {
-        assert_eq!(center.len(), normal.len());
-        assert_eq!(center.len(), 3);
         assert!(normal.norm() > 0.0);
         assert!(radius > 0.0);
         let x_axis = orthogonal_vector(&normal);
@@ -44,14 +42,10 @@ impl Circle {
 }
 
 impl Curve for Circle {
-    fn dimension(&self) -> usize {
-        self.center.len()
-    }
-
     fn eval_point(
         &self,
         u: f64,
-    ) -> Vector {
+    ) -> Vec3 {
         let Self {
             center: c,
             radius: r,
@@ -67,7 +61,7 @@ impl Curve for Circle {
         &self,
         u: f64,
         m: usize,
-    ) -> Vector {
+    ) -> Vec3 {
         if m == 0 {
             return self.eval_point(u);
         }

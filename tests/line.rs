@@ -4,22 +4,22 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
-use topohedral_geometry::{Curve, Line};
+use topohedral_geometry::{Curve, Line, Vec3};
 //}}}
 //{{{ std imports
 //}}}
 //{{{ dep imports
 use approx::assert_abs_diff_eq;
-use topohedral_linalg::{DVector, VecType::Col, VectorOps};
+use topohedral_linalg::VectorOps;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
-fn vector(values: &[f64]) -> DVector<f64> {
-    DVector::from_slice_vec(values, values.len(), Col)
+fn vector(values: [f64; 3]) -> Vec3 {
+    Vec3::from_col_slice(&values)
 }
 
 fn assert_vector_eq(
-    actual: &DVector<f64>,
+    actual: &Vec3,
     expected: &[f64],
 ) {
     assert_eq!(actual.len(), expected.len());
@@ -29,7 +29,7 @@ fn assert_vector_eq(
 }
 
 fn reference_line() -> Line {
-    Line::new(vector(&[1.0, -2.0, 3.0]), vector(&[2.0, 4.0, -1.0]))
+    Line::new(vector([1.0, -2.0, 3.0]), vector([2.0, 4.0, -1.0]))
 }
 
 #[test]
@@ -55,7 +55,7 @@ fn derivatives_are_constant_or_zero() {
 #[test]
 fn all_derivatives_are_written_to_the_output_slice() {
     let line = reference_line();
-    let mut derivatives = vec![vector(&[99.0, 99.0, 99.0]); 4];
+    let mut derivatives = vec![vector([99.0, 99.0, 99.0]); 4];
 
     line.eval_all_derivatives(0.5, 3, &mut derivatives);
 
@@ -67,10 +67,10 @@ fn all_derivatives_are_written_to_the_output_slice() {
 
 #[test]
 fn tangent_can_be_normalized() {
-    let line = Line::new(vector(&[0.0, 0.0]), vector(&[3.0, 4.0]));
+    let line = Line::new(vector([0.0, 0.0, 0.0]), vector([3.0, 4.0, 0.0]));
 
-    assert_vector_eq(&line.eval_tangent(0.75, false), &[3.0, 4.0]);
-    assert_vector_eq(&line.eval_tangent(0.75, true), &[0.6, 0.8]);
+    assert_vector_eq(&line.eval_tangent(0.75, false), &[3.0, 4.0, 0.0]);
+    assert_vector_eq(&line.eval_tangent(0.75, true), &[0.6, 0.8, 0.0]);
 }
 
 #[test]

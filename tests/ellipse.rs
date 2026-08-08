@@ -1,17 +1,17 @@
 //! Integration tests for ellipse curves.
 
 use approx::assert_abs_diff_eq;
-use topohedral_geometry::{Curve, Ellipse};
-use topohedral_linalg::{DVector, VecType::Col, VectorOps};
+use topohedral_geometry::{Curve, Ellipse, Vec3};
+use topohedral_linalg::VectorOps;
 
 const TOLERANCE: f64 = 1.0e-12;
 
-fn vector(values: &[f64]) -> DVector<f64> {
-    DVector::from_slice_vec(values, values.len(), Col)
+fn vector(values: [f64; 3]) -> Vec3 {
+    Vec3::from_col_slice(&values)
 }
 
 fn assert_vector_eq(
-    actual: &DVector<f64>,
+    actual: &Vec3,
     expected: &[f64],
 ) {
     assert_eq!(actual.len(), expected.len());
@@ -21,12 +21,7 @@ fn assert_vector_eq(
 }
 
 fn reference_ellipse() -> Ellipse {
-    Ellipse::new(
-        vector(&[1.0, -2.0, 3.0]),
-        vector(&[0.0, 0.0, 1.0]),
-        2.0,
-        3.0,
-    )
+    Ellipse::new(vector([1.0, -2.0, 3.0]), vector([0.0, 0.0, 1.0]), 2.0, 3.0)
 }
 
 #[test]
@@ -60,7 +55,7 @@ fn derivatives_follow_the_ellipse_periodicity() {
 #[test]
 fn all_derivatives_are_written_to_the_output_slice() {
     let ellipse = reference_ellipse();
-    let mut derivatives = vec![vector(&[99.0, 99.0, 99.0]); 5];
+    let mut derivatives = vec![vector([99.0, 99.0, 99.0]); 5];
 
     ellipse.eval_all_derivatives(0.0, 4, &mut derivatives);
 
@@ -82,12 +77,6 @@ fn tangent_and_frame_follow_the_ellipse_orientation() {
 
 #[test]
 #[should_panic]
-fn rejects_mismatched_center_and_normal_dimensions() {
-    Ellipse::new(vector(&[0.0, 0.0, 0.0]), vector(&[0.0, 0.0]), 2.0, 1.0);
-}
-
-#[test]
-#[should_panic]
 fn rejects_non_positive_radii() {
-    Ellipse::new(vector(&[0.0, 0.0, 0.0]), vector(&[0.0, 0.0, 1.0]), 0.0, 1.0);
+    Ellipse::new(vector([0.0, 0.0, 0.0]), vector([0.0, 0.0, 1.0]), 0.0, 1.0);
 }

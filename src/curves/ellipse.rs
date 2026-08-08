@@ -4,7 +4,7 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
-use crate::common::Vector;
+use crate::common::Vec3;
 use crate::utils::orthogonal_vector;
 use crate::Curve;
 //}}}
@@ -16,22 +16,20 @@ use topohedral_linalg::VectorOps;
 //--------------------------------------------------------------------------------------------------
 
 pub struct Ellipse {
-    center: Vector,
-    x_axis: Vector,
-    y_axis: Vector,
+    center: Vec3,
+    x_axis: Vec3,
+    y_axis: Vec3,
     x_radius: f64,
     y_radius: f64,
 }
 
 impl Ellipse {
     pub fn new(
-        center: Vector,
-        normal: Vector,
+        center: Vec3,
+        normal: Vec3,
         x_radius: f64,
         y_radius: f64,
     ) -> Self {
-        assert_eq!(center.len(), normal.len());
-        assert_eq!(center.len(), 3);
         assert!(normal.norm() > 0.0);
         assert!(x_radius > 0.0);
         assert!(y_radius > 0.0);
@@ -49,14 +47,10 @@ impl Ellipse {
 }
 
 impl Curve for Ellipse {
-    fn dimension(&self) -> usize {
-        self.x_axis.len()
-    }
-
     fn eval_point(
         &self,
         u: f64,
-    ) -> Vector {
+    ) -> Vec3 {
         let Self {
             center: c,
             x_axis,
@@ -73,7 +67,7 @@ impl Curve for Ellipse {
         &self,
         u: f64,
         m: usize,
-    ) -> Vector {
+    ) -> Vec3 {
         let Self {
             center: _,
             x_axis,

@@ -9,33 +9,35 @@
 use std::{ops::Index, ops::IndexMut};
 //}}}
 //{{{ dep imports
-use topohedral_linalg::{DVector, VecType::Col, VectorOps};
+use topohedral_linalg::SCVector;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
 pub const PI: f64 = std::f64::consts::PI;
 
-//{{{ type: Vector
-pub(crate) type Vector = DVector<f64>;
+//{{{ types: Vec3 and Vec4
+/// A point or vector in Euclidean 3-space.
+pub type Vec3 = SCVector<f64, 3>;
+/// A point or vector in homogeneous 3-space.
+pub type Vec4 = SCVector<f64, 4>;
 //}}}
 //{{{ fun: zero_vec
-pub(crate) fn zero_vec(n: usize) -> Vector {
-    Vector::zeros_vec(n, Col)
+pub(crate) fn zero_vec() -> Vec3 {
+    Vec3::zeros()
 }
 //}}}
-//{{{ fun: vec_from_values
-pub(crate) fn vec_from_values(values: &[f64]) -> Vector {
-    Vector::from_slice_vec(values, values.len(), Col)
+//{{{ fun: zero_vec4
+pub(crate) fn zero_vec4() -> Vec4 {
+    Vec4::zeros()
 }
 //}}}
 //{{{ fun: inv_homog
 /// Performs the perspective map (inverse of homogeneuos map) from homogeneous coordinates to
 /// Euclidean coordinates.
-pub(crate) fn inv_homog(point_w: &Vector) -> Vector {
-    let n = point_w.len();
-    let mut point = Vector::from_value_vec(0.0, n - 1, Col);
-    let w = point_w[n - 1];
-    for i in 0..n - 1 {
+pub(crate) fn inv_homog(point_w: &Vec4) -> Vec3 {
+    let mut point = Vec3::zeros();
+    let w = point_w[3];
+    for i in 0..3 {
         point[i] = point_w[i] / w;
     }
     point
@@ -45,15 +47,14 @@ pub(crate) fn inv_homog(point_w: &Vector) -> Vector {
 /// Performs the inverse perspective map (homogeneous map) from Euclidean coordinates to
 /// Homogeneious coordinates.
 pub(crate) fn homog(
-    point: &Vector,
+    point: &Vec3,
     weight: f64,
-) -> Vector {
-    let n = point.len();
-    let mut point_w = Vector::from_value_vec(0.0, n + 1, Col);
-    for i in 0..n {
+) -> Vec4 {
+    let mut point_w = Vec4::zeros();
+    for i in 0..3 {
         point_w[i] = weight * point[i];
     }
-    point_w[n] = weight;
+    point_w[3] = weight;
     point_w
 }
 //}}}

@@ -4,24 +4,21 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
-use crate::common::{zero_vec, Vector};
+use crate::common::{zero_vec, Vec3};
 //}}}
 //{{{ std imports
 //}}}
-//{{{ dep imports
-use topohedral_linalg::VectorOps;
-//}}}
 //--------------------------------------------------------------------------------------------------
 
-pub(crate) fn orthogonal_vector(vec: &Vector) -> Vector {
+pub(crate) fn orthogonal_vector(vec: &Vec3) -> Vec3 {
     let v0 = vec[0];
     let s = v0.signum();
     let beta = 1.0 / (1.0 + v0.abs());
 
-    let mut orth_vec = zero_vec(vec.len());
+    let mut orth_vec = zero_vec();
     orth_vec[0] = -s * vec[1];
     orth_vec[1] = 1.0 - beta * vec[1] * vec[1];
-    for i in 2..vec.len() {
+    for i in 2..3 {
         orth_vec[i] = -beta * vec[1] * vec[i];
     }
     orth_vec

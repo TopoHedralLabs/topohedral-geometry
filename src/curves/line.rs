@@ -5,41 +5,33 @@
 
 //{{{ crate imports
 use crate::{
-    common::{zero_vec, Vector},
+    common::{zero_vec, Vec3},
     Curve,
 };
 //}}}
 //{{{ std imports
 //}}}
-//{{{ dep imports
-use topohedral_linalg::VectorOps;
-//}}}
 //--------------------------------------------------------------------------------------------------
 
 pub struct Line {
-    origin: Vector,
-    direction: Vector,
+    origin: Vec3,
+    direction: Vec3,
 }
 
 impl Line {
     pub fn new(
-        origin: Vector,
-        direction: Vector,
+        origin: Vec3,
+        direction: Vec3,
     ) -> Self {
-        assert_eq!(origin.len(), direction.len());
         Self { origin, direction }
     }
 }
 
 impl Curve for Line {
-    fn dimension(&self) -> usize {
-        self.origin.len()
-    }
-
     fn eval_point(
         &self,
         u: f64,
-    ) -> Vector {
+    ) -> Vec3 {
         let c = (&self.origin + u * &self.direction).into();
         c
     }
@@ -48,13 +40,13 @@ impl Curve for Line {
         &self,
         u: f64,
         m: usize,
-    ) -> Vector {
+    ) -> Vec3 {
         if m == 0 {
             self.eval_point(u)
         } else if m == 1 {
             self.direction.clone()
         } else {
-            zero_vec(self.dimension())
+            zero_vec()
         }
     }
 }

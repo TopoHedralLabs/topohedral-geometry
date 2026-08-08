@@ -9,7 +9,7 @@ use topohedral_linalg::VectorOps;
 //{{{ crate imports
 use crate::common::Vec3;
 use crate::surfaces::common::Surface;
-use crate::utils::orthogonal_vector;
+use crate::utils::{is_unit_vector, orthogonal_vector};
 //}}}
 //{{{ std imports
 //}}}
@@ -28,10 +28,9 @@ impl Plane {
         origin: Vec3,
         normal: Vec3,
     ) -> Self {
-        assert_relative_eq!(normal.norm(), 1.0);
+        assert!(is_unit_vector(&normal));
         let x_axis = orthogonal_vector(&normal);
         let y_axis = x_axis.cross(&normal);
-
         Self {
             origin,
             x_axis,

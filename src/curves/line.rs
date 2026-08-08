@@ -6,6 +6,7 @@
 //{{{ crate imports
 use crate::{
     common::{zero_vec, Vec3},
+    utils::is_unit_vector,
     Curve,
 };
 //}}}
@@ -23,6 +24,7 @@ impl Line {
         origin: Vec3,
         direction: Vec3,
     ) -> Self {
+        assert!(is_unit_vector(&direction));
         Self { origin, direction }
     }
 }

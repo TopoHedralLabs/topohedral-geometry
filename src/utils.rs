@@ -3,6 +3,8 @@
 //! Longer description of module
 //--------------------------------------------------------------------------------------------------
 
+use topohedral_linalg::VectorOps;
+
 //{{{ crate imports
 use crate::common::{zero_vec, Vec3};
 //}}}
@@ -22,4 +24,9 @@ pub(crate) fn orthogonal_vector(vec: &Vec3) -> Vec3 {
         orth_vec[i] = -beta * vec[1] * vec[i];
     }
     orth_vec
+}
+
+pub(crate) fn is_unit_vector(vec: &Vec3) -> bool {
+    let norm = vec.norm();
+    (norm - 1.0).abs() < 1e-12
 }

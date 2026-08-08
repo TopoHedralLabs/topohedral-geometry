@@ -5,7 +5,7 @@
 
 //{{{ crate imports
 use crate::common::Vec3;
-use crate::utils::orthogonal_vector;
+use crate::utils::{is_unit_vector, orthogonal_vector};
 use crate::Curve;
 //}}}
 //{{{ std imports
@@ -28,7 +28,7 @@ impl Circle {
         normal: Vec3,
         radius: f64,
     ) -> Self {
-        assert!(normal.norm() > 0.0);
+        assert!(is_unit_vector(&normal));
         assert!(radius > 0.0);
         let x_axis = orthogonal_vector(&normal);
         let y_axis = x_axis.cross(&normal);
@@ -49,11 +49,11 @@ impl Curve for Circle {
         let Self {
             center: c,
             radius: r,
-            x_axis,
-            y_axis,
+            x_axis: ex,
+            y_axis: ey,
         } = self;
 
-        (c + r * u.cos() * x_axis + r * u.sin() * y_axis).into()
+        (c + r * u.cos() * ex + r * u.sin() * ey).into()
     }
 
     fn eval_derivative(
@@ -68,19 +68,19 @@ impl Curve for Circle {
         let Self {
             center: _,
             radius: r,
-            x_axis,
-            y_axis,
+            x_axis: ex,
+            y_axis: ey,
         } = self;
         if m.is_multiple_of(2) {
             let is_odd = ((m / 2) % 2) == 1;
             let sign = if is_odd { -1.0 } else { 1.0 };
 
-            (sign * (r * u.cos() * x_axis + r * u.sin() * y_axis)).into()
+            (sign * (r * u.cos() * ex + r * u.sin() * ey)).into()
         } else {
             let is_odd = (((m - 1) / 2) % 2) == 1;
             let sign = if is_odd { -1.0 } else { 1.0 };
 
-            (sign * (-r * u.sin() * x_axis + r * u.cos() * y_axis)).into()
+            (sign * (-r * u.sin() * ex + r * u.cos() * ey)).into()
         }
     }
 }

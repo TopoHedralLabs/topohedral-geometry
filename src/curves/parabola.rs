@@ -4,7 +4,7 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
-use crate::{common::Vec3, Curve};
+use crate::{common::Vec3, utils::is_unit_vector, Curve};
 //}}}
 //{{{ std imports
 use topohedral_linalg::VectorOps;
@@ -25,6 +25,9 @@ impl Parabola {
         direction: Vec3,
         slope: f64,
     ) -> Self {
+        assert!(is_unit_vector(&normal));
+        assert!(is_unit_vector(&direction));
+        assert!(slope > 0.0);
         Self {
             origin,
             normal,

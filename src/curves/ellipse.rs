@@ -5,7 +5,7 @@
 
 //{{{ crate imports
 use crate::common::Vec3;
-use crate::utils::orthogonal_vector;
+use crate::utils::{is_unit_vector, orthogonal_vector};
 use crate::Curve;
 //}}}
 //{{{ std imports
@@ -30,7 +30,7 @@ impl Ellipse {
         x_radius: f64,
         y_radius: f64,
     ) -> Self {
-        assert!(normal.norm() > 0.0);
+        assert!(is_unit_vector(&normal));
         assert!(x_radius > 0.0);
         assert!(y_radius > 0.0);
 

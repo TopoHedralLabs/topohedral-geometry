@@ -19,7 +19,7 @@ mod hyperbola;
 mod line;
 mod parabola;
 
-pub use bcurve::{BCurve, BCurveData, CurveError};
+pub use bcurve::BCurve;
 pub use circle::Circle;
 pub use common::Curve;
 pub use ellipse::Ellipse;

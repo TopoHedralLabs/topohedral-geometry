@@ -12,7 +12,6 @@ use crate::splines::{self, find_span, is_member, knot_eq, PMAX, PMAX_SQR};
 //{{{ std imports
 //}}}
 //{{{ dep imports
-use thiserror::Error;
 use topohedral_linalg::TransformOps;
 use topohedral_tracing::*;
 //}}}
@@ -22,22 +21,6 @@ use topohedral_tracing::*;
 pub const BCURVE_DER_MAX: usize = 5;
 pub const BCURVE_DER_MAX_SQRD: usize = 25;
 //}}}
-//{{{ enum: CurveError
-#[derive(Debug, Error, Clone)]
-pub enum CurveError {
-    #[error("Construction error {0}")]
-    ConstructionError(String),
-}
-//}}}
-//{{{ struct BCurveData
-#[derive(Debug, Clone)]
-pub struct BCurveData {
-    pub p: usize,
-    pub knots: Vec<f64>,
-    pub points: Vec<Vec3>,
-    pub weights: Vec<f64>,
-}
-//}}}
 //{{{ struct BCurve
 #[derive(Debug, Clone, Default)]
 pub struct BCurve {
@@ -46,61 +29,44 @@ pub struct BCurve {
     points_w: Vec<Vec4>,
 }
 //}}}
-//{{{ impl: BCurveData
-impl BCurveData {
-    #[trace_fn]
-    fn validate(&self) -> Result<(), CurveError> {
-        if self.p > PMAX {
-            return Err(CurveError::ConstructionError("Order too high".to_string()));
-        }
-        if !self.knots.is_sorted() {
-            return Err(CurveError::ConstructionError(
-                "Knots not sorted".to_string(),
-            ));
-        }
-        if !self.weights.iter().all(|&x| x >= 0.0) {
-            return Err(CurveError::ConstructionError(
-                "Weights must by positive".to_string(),
-            ));
-        }
-        if self.points.len() != self.weights.len() {
-            return Err(CurveError::ConstructionError(
-                "Points and weights must have same size".to_string(),
-            ));
-        }
-        if self.knots.len() != (self.weights.len() + self.p + 1) {
-            return Err(CurveError::ConstructionError(
-                "Knots have wrong size".to_string(),
-            ));
-        }
-        if self.points.is_empty() {
-            return Err(CurveError::ConstructionError(
-                "At least one point is required".to_string(),
-            ));
-        }
-        Ok(())
-    }
-}
-//}}}
 //{{{ impl: BCurve
 impl BCurve {
     //{{{ fun: new
     #[trace_fn]
-    pub fn new(data: BCurveData) -> Result<Self, CurveError> {
-        data.validate()?;
-        let n = data.weights.len();
+    pub fn new(
+        order: usize,
+        knots: Vec<f64>,
+        points: Vec<Vec3>,
+        weights: Vec<f64>,
+    ) -> Self {
+        assert!(order <= PMAX, "Order too high");
+        assert!(knots.is_sorted(), "Knots not sorted");
+        assert!(
+            weights.iter().all(|&weight| weight >= 0.0),
+            "Weights must be positive"
+        );
+        assert_eq!(
+            points.len(),
+            weights.len(),
+            "Points and weights must have same size"
+        );
+        assert_eq!(
+            knots.len(),
+            weights.len() + order + 1,
+            "Knots have wrong size"
+        );
+        assert!(!points.is_empty(), "At least one point is required");
+
+        let n = weights.len();
         let mut points_w = vec![zero_vec4(); n];
-        for (point_w, (point, &weight)) in points_w
-            .iter_mut()
-            .zip(data.points.iter().zip(&data.weights))
-        {
+        for (point_w, (point, &weight)) in points_w.iter_mut().zip(points.iter().zip(&weights)) {
             point_w.copy_from(&homog(point, weight));
         }
-        Ok(Self {
-            order: data.p,
-            knots: data.knots,
+        Self {
+            order,
+            knots,
             points_w,
-        })
+        }
     }
     //}}}
     //{{{ fun: dimension

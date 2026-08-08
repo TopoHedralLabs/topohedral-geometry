@@ -105,7 +105,7 @@ impl<const N: usize> IndexHelper<N> {
 }
 //}}}
 //{{{ struct: MultiDimArray
-pub(crate) struct MultDimArray<T, const MAX_SIZE: usize, const DIM: usize>
+pub(crate) struct StaticMultDimArray<T, const MAX_SIZE: usize, const DIM: usize>
 where
     T: Clone,
 {
@@ -114,7 +114,7 @@ where
 }
 //}}}
 //{{{ impl: MultDimArray
-impl<T, const MAX_SIZE: usize, const DIM: usize> MultDimArray<T, MAX_SIZE, DIM>
+impl<T, const MAX_SIZE: usize, const DIM: usize> StaticMultDimArray<T, MAX_SIZE, DIM>
 where
     T: Clone,
 {
@@ -139,7 +139,7 @@ where
 //}}}
 //{{{ impl: Index for MultDimArray
 impl<T, const MAX_SIZE: usize, const DIM: usize> Index<&[usize; DIM]>
-    for MultDimArray<T, MAX_SIZE, DIM>
+    for StaticMultDimArray<T, MAX_SIZE, DIM>
 where
     T: Clone,
 {
@@ -156,7 +156,7 @@ where
 //}}}
 //{{{ impl: IndexMut for MultDimArray
 impl<T, const MAX_SIZE: usize, const DIM: usize> IndexMut<&[usize; DIM]>
-    for MultDimArray<T, MAX_SIZE, DIM>
+    for StaticMultDimArray<T, MAX_SIZE, DIM>
 where
     T: Clone,
 {
@@ -170,8 +170,8 @@ where
 }
 //}}}
 //{{{ fun: binom_coeff
-pub(crate) fn binom_coeff<const MAX_SIZE: usize>(n: usize) -> MultDimArray<f64, MAX_SIZE, 2> {
-    let mut binom = MultDimArray::<f64, MAX_SIZE, 2>::new(0.0, &[n + 1, n + 1]);
+pub(crate) fn binom_coeff<const MAX_SIZE: usize>(n: usize) -> StaticMultDimArray<f64, MAX_SIZE, 2> {
+    let mut binom = StaticMultDimArray::<f64, MAX_SIZE, 2>::new(0.0, &[n + 1, n + 1]);
     for i in 0..n + 1 {
         binom[&[i, i]] = 1.0;
         binom[&[i, 0]] = 1.0;

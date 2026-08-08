@@ -5,7 +5,9 @@
 
 //{{{ crate imports
 use super::common::Curve;
-use crate::common::{binom_coeff, homog, inv_homog, zero_vec, zero_vec4, MultDimArray, Vec3, Vec4};
+use crate::common::{
+    binom_coeff, homog, inv_homog, zero_vec, zero_vec4, StaticMultDimArray, Vec3, Vec4,
+};
 use crate::knot_multiplicity;
 use crate::splines::{self, find_span, is_member, knot_eq, PMAX, PMAX_SQR};
 //}}}
@@ -334,7 +336,7 @@ impl BCurve {
         let comb = binom_coeff::<PMAX_SQR>(ord_after);
 
         let mut bezalfs =
-            MultDimArray::<f64, PMAX_SQR, 2>::new(0.0, &[ord_after + 1, ord_before + 1]);
+            StaticMultDimArray::<f64, PMAX_SQR, 2>::new(0.0, &[ord_after + 1, ord_before + 1]);
 
         bezalfs[&[0, 0]] = 1.0;
         bezalfs[&[ord_after, ord_before]] = 1.0;
@@ -561,7 +563,7 @@ impl Curve for BCurve {
             let num_derivatives = derivative_order + 1;
             let mut curve_derivatives_w: [Vec4; BCURVE_DER_MAX] =
                 std::array::from_fn(|_| zero_vec4());
-            let mut basis_ders_arr = MultDimArray::<f64, BCURVE_DER_MAX_SQRD, 2>::new(
+            let mut basis_ders_arr = StaticMultDimArray::<f64, BCURVE_DER_MAX_SQRD, 2>::new(
                 0.0,
                 &[num_basis, num_derivatives],
             );

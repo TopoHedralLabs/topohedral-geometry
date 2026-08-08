@@ -29,7 +29,14 @@ fn assert_vector_eq(
 }
 
 fn reference_line() -> Line {
-    Line::new(vector([1.0, -2.0, 3.0]), vector([2.0, 4.0, -1.0]))
+    Line::new(
+        vector([1.0, -2.0, 3.0]),
+        vector([
+            2.0 / 21.0_f64.sqrt(),
+            4.0 / 21.0_f64.sqrt(),
+            -1.0 / 21.0_f64.sqrt(),
+        ]),
+    )
 }
 
 #[test]
@@ -38,16 +45,44 @@ fn dimension_and_point_evaluation() {
 
     assert_eq!(line.dimension(), 3);
     assert_vector_eq(&line.eval_point(0.0), &[1.0, -2.0, 3.0]);
-    assert_vector_eq(&line.eval_point(0.5), &[2.0, 0.0, 2.5]);
-    assert_vector_eq(&line.eval_point(-2.0), &[-3.0, -10.0, 5.0]);
+    assert_vector_eq(
+        &line.eval_point(0.5),
+        &[
+            1.0 + 1.0 / 21.0_f64.sqrt(),
+            -2.0 + 2.0 / 21.0_f64.sqrt(),
+            3.0 - 0.5 / 21.0_f64.sqrt(),
+        ],
+    );
+    assert_vector_eq(
+        &line.eval_point(-2.0),
+        &[
+            1.0 - 4.0 / 21.0_f64.sqrt(),
+            -2.0 - 8.0 / 21.0_f64.sqrt(),
+            3.0 + 2.0 / 21.0_f64.sqrt(),
+        ],
+    );
 }
 
 #[test]
 fn derivatives_are_constant_or_zero() {
     let line = reference_line();
 
-    assert_vector_eq(&line.eval_derivative(0.25, 0), &[1.5, -1.0, 2.75]);
-    assert_vector_eq(&line.eval_derivative(0.25, 1), &[2.0, 4.0, -1.0]);
+    assert_vector_eq(
+        &line.eval_derivative(0.25, 0),
+        &[
+            1.0 + 0.5 / 21.0_f64.sqrt(),
+            -2.0 + 1.0 / 21.0_f64.sqrt(),
+            3.0 - 0.25 / 21.0_f64.sqrt(),
+        ],
+    );
+    assert_vector_eq(
+        &line.eval_derivative(0.25, 1),
+        &[
+            2.0 / 21.0_f64.sqrt(),
+            4.0 / 21.0_f64.sqrt(),
+            -1.0 / 21.0_f64.sqrt(),
+        ],
+    );
     assert_vector_eq(&line.eval_derivative(0.25, 2), &[0.0, 0.0, 0.0]);
     assert_vector_eq(&line.eval_derivative(0.25, 4), &[0.0, 0.0, 0.0]);
 }
@@ -59,18 +94,38 @@ fn all_derivatives_are_written_to_the_output_slice() {
 
     line.eval_all_derivatives(0.5, 3, &mut derivatives);
 
-    assert_vector_eq(&derivatives[0], &[2.0, 0.0, 2.5]);
-    assert_vector_eq(&derivatives[1], &[2.0, 4.0, -1.0]);
+    assert_vector_eq(
+        &derivatives[0],
+        &[
+            1.0 + 1.0 / 21.0_f64.sqrt(),
+            -2.0 + 2.0 / 21.0_f64.sqrt(),
+            3.0 - 0.5 / 21.0_f64.sqrt(),
+        ],
+    );
+    assert_vector_eq(
+        &derivatives[1],
+        &[
+            2.0 / 21.0_f64.sqrt(),
+            4.0 / 21.0_f64.sqrt(),
+            -1.0 / 21.0_f64.sqrt(),
+        ],
+    );
     assert_vector_eq(&derivatives[2], &[0.0, 0.0, 0.0]);
     assert_vector_eq(&derivatives[3], &[0.0, 0.0, 0.0]);
 }
 
 #[test]
-fn tangent_can_be_normalized() {
-    let line = Line::new(vector([0.0, 0.0, 0.0]), vector([3.0, 4.0, 0.0]));
+fn tangent_is_already_normalized() {
+    let line = Line::new(vector([0.0, 0.0, 0.0]), vector([0.6, 0.8, 0.0]));
 
-    assert_vector_eq(&line.eval_tangent(0.75, false), &[3.0, 4.0, 0.0]);
+    assert_vector_eq(&line.eval_tangent(0.75, false), &[0.6, 0.8, 0.0]);
     assert_vector_eq(&line.eval_tangent(0.75, true), &[0.6, 0.8, 0.0]);
+}
+
+#[test]
+#[should_panic]
+fn rejects_non_unit_direction() {
+    Line::new(vector([0.0, 0.0, 0.0]), vector([3.0, 4.0, 0.0]));
 }
 
 #[test]

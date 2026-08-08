@@ -74,13 +74,11 @@ impl Curve for Circle {
         if m.is_multiple_of(2) {
             let is_odd = ((m / 2) % 2) == 1;
             let sign = if is_odd { -1.0 } else { 1.0 };
-
-            (sign * (r * u.cos() * ex + r * u.sin() * ey)).into()
+            (sign * r * (u.cos() * ex + u.sin() * ey)).into()
         } else {
             let is_odd = (((m - 1) / 2) % 2) == 1;
             let sign = if is_odd { -1.0 } else { 1.0 };
-
-            (sign * (-r * u.sin() * ex + r * u.cos() * ey)).into()
+            (sign * r * (-u.sin() * ex + u.cos() * ey)).into()
         }
     }
 }

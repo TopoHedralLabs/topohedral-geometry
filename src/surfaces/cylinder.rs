@@ -89,11 +89,11 @@ impl Surface for Cylinder {
             if m.is_multiple_of(2) {
                 let is_odd = ((m / 2) % 2) == 1;
                 let sign = if is_odd { -1.0 } else { 1.0 };
-                return (sign * (r * u.cos() * ex + r * u.sin() * ey)).into();
+                return (sign * r * (u.cos() * ex + u.sin() * ey)).into();
             } else {
                 let is_odd = ((m / 2) % 2) == 1;
                 let sign = if is_odd { -1.0 } else { 1.0 };
-                return (sign * (-r * u.sin() * ex + r * u.cos() * ey)).into();
+                return (sign * r * (-u.sin() * ex + u.cos() * ey)).into();
             }
         }
         // all other configurations, mixed derivatives, v derivative > 1 all zero

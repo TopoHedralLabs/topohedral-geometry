@@ -23,3 +23,4 @@ pub use circle::Circle;
 pub use common::Curve;
 pub use ellipse::Ellipse;
 pub use line::Line;
+pub use parabola::Parabola;

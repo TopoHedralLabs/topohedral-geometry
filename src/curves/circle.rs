@@ -53,8 +53,7 @@ impl Curve for Circle {
             y_axis,
         } = self;
 
-        let out = (c + r * u.cos() * x_axis + r * u.sin() * y_axis).into();
-        out
+        (c + r * u.cos() * x_axis + r * u.sin() * y_axis).into()
     }
 
     fn eval_derivative(
@@ -72,16 +71,16 @@ impl Curve for Circle {
             x_axis,
             y_axis,
         } = self;
-        if m % 2 == 0 {
+        if m.is_multiple_of(2) {
             let is_odd = ((m / 2) % 2) == 1;
             let sign = if is_odd { -1.0 } else { 1.0 };
-            let deriv = (sign * (r * u.cos() * x_axis + r * u.sin() * y_axis)).into();
-            deriv
+
+            (sign * (r * u.cos() * x_axis + r * u.sin() * y_axis)).into()
         } else {
             let is_odd = (((m - 1) / 2) % 2) == 1;
             let sign = if is_odd { -1.0 } else { 1.0 };
-            let deriv = (sign * (-r * u.sin() * x_axis + r * u.cos() * y_axis)).into();
-            deriv
+
+            (sign * (-r * u.sin() * x_axis + r * u.cos() * y_axis)).into()
         }
     }
 }

@@ -13,8 +13,6 @@ use topohedral_linalg::SCVector;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
-pub const PI: f64 = std::f64::consts::PI;
-
 //{{{ types: Vec3 and Vec4
 /// A point or vector in Euclidean 3-space.
 pub type Vec3 = SCVector<f64, 3>;

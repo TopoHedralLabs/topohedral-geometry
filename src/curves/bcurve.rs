@@ -186,7 +186,7 @@ impl BCurve {
                 let alpha = numer / denom;
                 p1.copy_from(&points_auxiliary[i + 1]);
                 p2.copy_from(&points_auxiliary[i]);
-                points_auxiliary[i].copy_from(alpha * &p1 + (1.0 - alpha) * &p2);
+                points_auxiliary[i].copy_from(alpha * p1 + (1.0 - alpha) * p2);
             }
             points_w_after[l].copy_from(&points_auxiliary[0]);
             points_w_after[span + num_insertions - j - knot_mult]
@@ -305,7 +305,7 @@ impl BCurve {
                 low_lim -= 1;
                 high_lim -= 1;
             }
-            let tmp = points_w_after[high_lim - ord].clone();
+            let tmp = points_w_after[high_lim - ord];
             points_w_after[high_lim - ord - 1].copy_from(&tmp);
             for l in 1..=ord {
                 //{{{ trace
@@ -315,13 +315,13 @@ impl BCurve {
                 let ind = high_lim - ord + l;
                 let mut alpha = knots_after[high_lim + l] - u[j];
                 if alpha.abs() == 0.0 {
-                    let tmp = points_w_after[ind].clone();
+                    let tmp = points_w_after[ind];
                     points_w_after[ind - 1].copy_from(&tmp);
                 } else {
                     alpha /= knots_after[high_lim + l] - knots_before[low_lim - ord + l];
-                    let tmp1 = points_w_after[ind - 1].clone();
-                    let tmp2 = points_w_after[ind].clone();
-                    points_w_after[ind - 1].copy_from(alpha * &tmp1 + (1.0 - alpha) * tmp2);
+                    let tmp1 = points_w_after[ind - 1];
+                    let tmp2 = points_w_after[ind];
+                    points_w_after[ind - 1].copy_from(alpha * tmp1 + (1.0 - alpha) * tmp2);
                 }
             }
             knots_after[high_lim] = u[j];
@@ -404,10 +404,7 @@ impl BCurve {
         point_w_after[0].copy_from(&points_w_before[0]);
         knots_after[0..(ord_after + 1)].fill(ua);
 
-        let mut bpts: Vec<Vec4> = points_w_before[0..(ord_before + 1)]
-            .iter()
-            .cloned()
-            .collect();
+        let mut bpts: Vec<Vec4> = points_w_before[0..(ord_before + 1)].to_vec();
 
         let mut ebpts = vec![zero_vec4(); ord_after + 1];
         let mut next_bpts = vec![zero_vec4(); ord_before.saturating_sub(1)];
@@ -446,9 +443,9 @@ impl BCurve {
                     let s = mul + j;
                     for k in (s..=ord_before).rev() {
                         let alpha = alphas[k - s];
-                        let old_k = bpts[k].clone();
-                        let old_k_minus_one = bpts[k - 1].clone();
-                        let tmp = alpha * &old_k + (1.0 - alpha) * &old_k_minus_one;
+                        let old_k = bpts[k];
+                        let old_k_minus_one = bpts[k - 1];
+                        let tmp = alpha * old_k + (1.0 - alpha) * old_k_minus_one;
                         bpts[k].copy_from(&tmp);
                     }
                     next_bpts[save].copy_from(&bpts[ord_before]);
@@ -460,41 +457,40 @@ impl BCurve {
                 let mpi = ord_before.min(i);
                 let start = i.saturating_sub(q);
                 for j in start..=mpi {
-                    let tmp = bezalfs[&[i, j]] * &bpts[j];
+                    let tmp = bezalfs[&[i, j]] * bpts[j];
                     ebpts[i] += tmp;
                 }
             }
 
             if oldr > 1 {
                 let mut first = kind - 2;
-                let mut last = kind;
                 let den = ub - ua;
                 let bet = (ub - knots_after[kind - 1]) / den;
 
-                for tr in 1..(oldr as usize) {
+                for (last, tr) in (kind..).zip(1..(oldr as usize)) {
                     let mut i = first;
                     let mut j = last;
                     let mut kj = j - kind + 1;
                     while j - i > tr {
                         if i < cind {
                             let alf = (ub - knots_after[i]) / (ua - knots_after[i]);
-                            let old_i = point_w_after[i].clone();
-                            let old_i_minus_one = point_w_after[i - 1].clone();
-                            let tmp = alf * &old_i + (1.0 - alf) * &old_i_minus_one;
+                            let old_i = point_w_after[i];
+                            let old_i_minus_one = point_w_after[i - 1];
+                            let tmp = alf * old_i + (1.0 - alf) * old_i_minus_one;
                             point_w_after[i].copy_from(&tmp);
                         }
                         if j >= lbz {
                             let threshold = kind as isize - ord_after as isize + oldr;
                             if (j - tr) as isize <= threshold {
                                 let gam = (ub - knots_after[j - tr]) / den;
-                                let old_kj = ebpts[kj].clone();
-                                let old_kj_plus_one = ebpts[kj + 1].clone();
-                                let tmp = gam * &old_kj + (1.0 - gam) * &old_kj_plus_one;
+                                let old_kj = ebpts[kj];
+                                let old_kj_plus_one = ebpts[kj + 1];
+                                let tmp = gam * old_kj + (1.0 - gam) * old_kj_plus_one;
                                 ebpts[kj].copy_from(&tmp);
                             } else {
-                                let old_kj = ebpts[kj].clone();
-                                let old_kj_plus_one = ebpts[kj + 1].clone();
-                                let tmp = bet * &old_kj + (1.0 - bet) * &old_kj_plus_one;
+                                let old_kj = ebpts[kj];
+                                let old_kj_plus_one = ebpts[kj + 1];
+                                let tmp = bet * old_kj + (1.0 - bet) * old_kj_plus_one;
                                 ebpts[kj].copy_from(&tmp);
                             }
                         }
@@ -503,7 +499,6 @@ impl BCurve {
                         kj -= 1;
                     }
                     first -= 1;
-                    last += 1;
                 }
             }
 
@@ -513,8 +508,8 @@ impl BCurve {
                     kind += 1;
                 }
             }
-            for j in lbz..=rbz {
-                point_w_after[cind].copy_from(&ebpts[j]);
+            for point in ebpts.iter().take(rbz + 1).skip(lbz) {
+                point_w_after[cind].copy_from(point);
                 cind += 1;
             }
 
@@ -561,7 +556,7 @@ impl Curve for BCurve {
         let mut bases_funs = [0.0; PMAX];
         splines::eval(&self.knots, u, self.order, &mut bases_funs);
         for i in start..end {
-            point_w += bases_funs[i - start] * &self.points_w[i];
+            point_w += bases_funs[i - start] * self.points_w[i];
         }
         inv_homog(&point_w)
     }
@@ -575,7 +570,7 @@ impl Curve for BCurve {
 
         let mut derivatives: [Vec3; BCURVE_DER_MAX] = std::array::from_fn(|_| zero_vec());
         self.eval_all_derivatives(u, m, &mut derivatives[..=m]);
-        derivatives[m].clone()
+        derivatives[m]
     }
 
     fn eval_all_derivatives(
@@ -628,9 +623,9 @@ impl Curve for BCurve {
                 for j in 1..m + 1 {
                     let wj = curve_derivatives_w[j][3];
                     let bmj = binom[&[m, j]];
-                    v -= bmj * wj * &ders_loc[m - j];
+                    v -= bmj * wj * ders_loc[m - j];
                 }
-                ders_loc[m].copy_from(&v / w0);
+                ders_loc[m].copy_from(v / w0);
                 derivatives[m].copy_from(&ders_loc[m]);
             }
         }

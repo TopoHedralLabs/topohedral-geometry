@@ -46,8 +46,8 @@ impl Curve for Parabola {
             slope: a,
         } = self;
         let dir_y = dir_x.cross(n);
-        let x = (o + 4.0 * a * u * dir_x + u * u * dir_y).into();
-        x
+
+        (o + 4.0 * a * u * dir_x + u * u * dir_y).into()
     }
 
     fn eval_derivative(
@@ -76,7 +76,6 @@ impl Curve for Parabola {
             return dx_du;
         }
 
-        let d2x_du2 = 2.0 * dir_y;
-        d2x_du2
+        2.0 * dir_y
     }
 }

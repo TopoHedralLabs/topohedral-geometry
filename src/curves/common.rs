@@ -37,8 +37,8 @@ pub trait Curve {
         derivatives: &mut [Vec3],
     ) {
         assert_eq!(derivatives.len(), m + 1);
-        for i in 0..=m {
-            derivatives[i].copy_from(&self.eval_derivative(u, i));
+        for (i, derivative) in derivatives.iter_mut().enumerate().take(m + 1) {
+            derivative.copy_from(&self.eval_derivative(u, i));
         }
     }
 

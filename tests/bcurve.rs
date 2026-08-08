@@ -215,7 +215,7 @@ fn eval_binormal_matches_bcurve_reference_values() {
 //{{{ test: insert_single_knot
 #[test]
 fn insert_single_knot() {
-    let mut curve1 = reference_curve();
+    let curve1 = reference_curve();
     let mut curve2 = reference_curve();
     curve2.insert_knot(0.15, 1);
 
@@ -236,7 +236,7 @@ fn insert_single_knot() {
 //{{{ test: insert_two_knots
 #[test]
 fn insert_two_knots() {
-    let mut curve1 = reference_curve();
+    let curve1 = reference_curve();
     let mut curve2 = reference_curve();
     curve2.insert_knot(0.15, 2);
 
@@ -257,7 +257,7 @@ fn insert_two_knots() {
 //{{{ test: insert_two_existing_knots
 #[test]
 fn insert_two_existing_knots() {
-    let mut curve1 = reference_curve();
+    let curve1 = reference_curve();
     let mut curve2 = reference_curve();
     curve2.insert_knot(0.7, 2);
 

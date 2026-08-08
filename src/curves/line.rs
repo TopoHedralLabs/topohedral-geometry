@@ -32,8 +32,7 @@ impl Curve for Line {
         &self,
         u: f64,
     ) -> Vec3 {
-        let c = (&self.origin + u * &self.direction).into();
-        c
+        self.origin + u * self.direction
     }
 
     fn eval_derivative(
@@ -44,7 +43,7 @@ impl Curve for Line {
         if m == 0 {
             self.eval_point(u)
         } else if m == 1 {
-            self.direction.clone()
+            self.direction
         } else {
             zero_vec()
         }

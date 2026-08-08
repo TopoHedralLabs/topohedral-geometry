@@ -59,8 +59,7 @@ impl Curve for Ellipse {
             y_radius: ry,
         } = self;
 
-        let x = (c + rx * u.cos() * x_axis + ry * u.sin() * y_axis).into();
-        x
+        (c + rx * u.cos() * x_axis + ry * u.sin() * y_axis).into()
     }
 
     fn eval_derivative(
@@ -80,16 +79,16 @@ impl Curve for Ellipse {
             return self.eval_point(u);
         }
 
-        if m % 2 == 0 {
+        if m.is_multiple_of(2) {
             let is_odd = ((m / 2) % 2) == 1;
             let sign = if is_odd { -1.0 } else { 1.0 };
-            let deriv = (sign * (rx * u.cos() * x_axis + ry * u.sin() * y_axis)).into();
-            deriv
+
+            (sign * (rx * u.cos() * x_axis + ry * u.sin() * y_axis)).into()
         } else {
             let is_odd = (((m - 1) / 2) % 2) == 1;
             let sign = if is_odd { -1.0 } else { 1.0 };
-            let deriv = (sign * (-rx * u.sin() * x_axis + ry * u.cos() * y_axis)).into();
-            deriv
+
+            (sign * (-rx * u.sin() * x_axis + ry * u.cos() * y_axis)).into()
         }
     }
 }

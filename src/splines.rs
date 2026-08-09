@@ -14,7 +14,9 @@ use approx::ulps_eq;
 //{{{ collection: constants
 /// This is the maximum allowable order of a bspline basis. It is an arbitrary number.
 pub const PMAX: usize = 8;
+pub const PMAX_PLUS_ONE: usize = 9;
 pub const PMAX_SQR: usize = 64;
+pub const PMAX_PLUS_ONE_SQR: usize = 81;
 /// This is the tolerance with which two knots are considered equal
 pub const KNOT_ULPS: u32 = 32;
 //}}}
@@ -148,7 +150,7 @@ pub fn non_zero_basis(
     u: f64,
     p: usize,
 ) -> (usize, usize, usize) {
-    debug_assert!(is_member(knots, u));
+    assert!(is_member(knots, u));
 
     let mi = knots.len() as i32;
     let span_i = find_span(knots, u, p) as i32;
@@ -184,8 +186,9 @@ pub fn eval(
     p: usize,
     shape_funs: &mut [f64],
 ) {
-    debug_assert!(shape_funs.len() > p, "Buffer too small to hold results");
-    debug_assert!(is_member(knots, u), "u is outside of ");
+    assert!(p <= PMAX);
+    assert!(shape_funs.len() > p, "Buffer too small to hold results");
+    assert!(is_member(knots, u), "u is outside of ");
 
     shape_funs.fill(0.0);
     shape_funs[0] = 1.0;
@@ -236,10 +239,10 @@ pub fn eval_diff(
     k: usize,
     shape_ders: &mut [f64],
 ) {
-    debug_assert!(is_member(knots, u), "u is not member of parameter range");
-    debug_assert!(p <= PMAX, "order exceeds max allowable");
-    // debug_assert!(k <= p, "order of derivative exceeds order");
-    debug_assert!(shape_ders.len() > p, "Derivative buffer too small");
+    assert!(is_member(knots, u), "u is not member of parameter range");
+    assert!(p <= PMAX, "order exceeds max allowable");
+    assert!(k <= p);
+    assert!(shape_ders.len() > p, "Derivative buffer too small");
 
     let i = find_span(knots, u, p);
     let p_k = p - k;
@@ -294,18 +297,18 @@ pub fn eval_diff_all(
     knots: &[f64],
     u: f64,
     p: usize,
-    k_in: usize,
+    k: usize,
     shape_ders: &mut [f64],
 ) {
-    debug_assert!(is_member(knots, u), "u is not member of parameter range");
-    debug_assert!(p < PMAX, "order exceeds max allowable");
-    // debug_assert!(k <= p, "order of derivative exceeds order");
-    debug_assert!(
-        shape_ders.len() >= (k_in + 1) * (p + 1),
+    assert!(is_member(knots, u), "u is not member of parameter range");
+    assert!(p <= PMAX, "order exceeds max allowable");
+    // assert!(k <= p, "order of derivative exceeds order");
+    assert!(
+        shape_ders.len() >= (k + 1) * (p + 1),
         "Derivative buffer too small"
     );
 
-    let k = p.min(k_in);
+    let k = p.min(k);
     shape_ders.fill(0.0);
     let row_size = p + 1;
     eval(knots, u, p, &mut shape_ders[..row_size]);

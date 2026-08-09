@@ -125,6 +125,10 @@ where
         }
     }
 
+    pub fn as_slice(&self) -> &[T] {
+        &self.data
+    }
+
     pub fn as_slice_mut(&mut self) -> &mut [T] {
         &mut self.data
     }
@@ -187,6 +191,10 @@ where
             data: vec![init_value; num_elems],
             index_helper: IndexHelper::new(dims),
         }
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        &self.data
     }
 
     pub fn as_slice_mut(&mut self) -> &mut [T] {

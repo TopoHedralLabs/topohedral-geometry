@@ -12,6 +12,8 @@ use crate::common::Vec3;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
+pub const WEIGHT_ULPS: u32 = 32;
+
 pub(crate) fn orthogonal_vector(vec: &Vec3) -> Vec3 {
     let v0 = vec[0];
     let s = v0.signum();

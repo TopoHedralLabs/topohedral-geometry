@@ -8,10 +8,12 @@ use super::common::Curve;
 use crate::common::{binom_coeff, homog, inv_homog, StatArray, Vec3, Vec4};
 use crate::knot_multiplicity;
 use crate::splines::{self, find_span, is_member, knot_eq, PMAX, PMAX_SQR};
+use crate::utils::WEIGHT_ULPS;
 //}}}
 //{{{ std imports
 //}}}
 //{{{ dep imports
+use approx::ulps_eq;
 use topohedral_linalg::TransformOps;
 use topohedral_tracing::*;
 //}}}
@@ -501,6 +503,17 @@ impl BCurve {
         *points_w_before = point_w_after[..=nh].to_vec();
     }
     //}}}
+    //{{{ fun: is_rational
+    pub fn is_rational(&self) -> bool {
+        let w00 = self.points_w[0][3];
+        for vec in self.points_w.iter().take(1) {
+            if !ulps_eq!(vec[3], w00, max_ulps = WEIGHT_ULPS) {
+                return false;
+            }
+        }
+        true
+    }
+    //}}}
 }
 //}}}
 //{{{ impl Curve for Bcurve
@@ -533,7 +546,7 @@ impl Curve for BCurve {
     ) -> Vec3 {
         assert!(m < BCURVE_DER_MAX, "derivative order exceeds maximum");
 
-        let mut derivatives: [Vec3; BCURVE_DER_MAX] = std::array::from_fn(|_| Vec3::zeros());
+        let mut derivatives = [Vec3::zeros(); BCURVE_DER_MAX];
         self.eval_all_derivatives(u, m, &mut derivatives[..=m]);
         derivatives[m]
     }
@@ -550,6 +563,7 @@ impl Curve for BCurve {
             derivative_order < BCURVE_DER_MAX,
             "derivative order exceeds maximum"
         );
+        assert!(derivative_order <= self.order);
 
         if derivative_order == 0 {
             derivatives[0].copy_from(self.eval_point(u));

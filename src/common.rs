@@ -151,6 +151,21 @@ where
     }
 }
 //}}}
+//{{{ impl: Index for StatArray
+impl<T, const MAX_SIZE: usize, const DIM: usize> Index<usize> for StatArray<T, MAX_SIZE, DIM>
+where
+    T: Clone,
+{
+    type Output = T;
+
+    fn index(
+        &self,
+        index: usize,
+    ) -> &Self::Output {
+        &self.data[index]
+    }
+}
+//}}}
 //{{{ impl: IndexMut for StaticArray
 impl<T, const MAX_SIZE: usize, const DIM: usize> IndexMut<&[usize; DIM]>
     for StatArray<T, MAX_SIZE, DIM>
@@ -163,6 +178,19 @@ where
     ) -> &mut Self::Output {
         let lin_index = self.index_helper.lin_index(index);
         &mut self.data[lin_index]
+    }
+}
+//}}}
+//{{{ impl: IndexMut for StatArray
+impl<T, const MAX_SIZE: usize, const DIM: usize> IndexMut<usize> for StatArray<T, MAX_SIZE, DIM>
+where
+    T: Clone,
+{
+    fn index_mut(
+        &mut self,
+        index: usize,
+    ) -> &mut Self::Output {
+        &mut self.data[index]
     }
 }
 //}}}
@@ -218,6 +246,21 @@ where
     }
 }
 //}}}
+//{{{ impl: Index for DynArray
+impl<T, const DIM: usize> Index<usize> for DynArray<T, DIM>
+where
+    T: Clone,
+{
+    type Output = T;
+
+    fn index(
+        &self,
+        index: usize,
+    ) -> &Self::Output {
+        &self.data[index]
+    }
+}
+//}}}
 //{{{ impl: IndexMut for Array
 impl<T, const DIM: usize> IndexMut<&[usize; DIM]> for DynArray<T, DIM>
 where
@@ -229,6 +272,19 @@ where
     ) -> &mut Self::Output {
         let lin_index = self.index_helper.lin_index(index);
         &mut self.data[lin_index]
+    }
+}
+//}}}
+//{{{ impl: IndexMut for DynArray
+impl<T, const DIM: usize> IndexMut<usize> for DynArray<T, DIM>
+where
+    T: Clone,
+{
+    fn index_mut(
+        &mut self,
+        index: usize,
+    ) -> &mut Self::Output {
+        &mut self.data[index]
     }
 }
 //}}}

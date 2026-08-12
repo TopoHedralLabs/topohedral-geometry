@@ -32,3 +32,33 @@ pub(crate) fn is_unit_vector(vec: &Vec3) -> bool {
     let norm = vec.norm();
     (norm - 1.0).abs() < 1e-12
 }
+
+pub(crate) fn sin_derivative(
+    u: f64,
+    m: usize,
+) -> f64 {
+    match m % 4 {
+        0 => u.sin(),
+        1 => u.cos(),
+        2 => -u.sin(),
+        4 => -u.cos(),
+        _ => {
+            panic!("Unexpected modulo")
+        }
+    }
+}
+
+pub(crate) fn cos_derivative(
+    u: f64,
+    m: usize,
+) -> f64 {
+    match m % 4 {
+        0 => u.cos(),
+        1 => -u.sin(),
+        2 => -u.cos(),
+        3 => u.sin(),
+        _ => {
+            panic!("Unexpected modulo")
+        }
+    }
+}

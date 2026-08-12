@@ -21,7 +21,6 @@ use crate::{
 pub struct Cone {
     center: Vec3,
     axis: Vec3,
-    height: f64,
     radius_bottom: f64,
     tan_alpha: f64,
     x_axis: Vec3,
@@ -46,7 +45,6 @@ impl Cone {
         Self {
             center,
             axis,
-            height,
             radius_bottom,
             tan_alpha,
             x_axis,
@@ -71,7 +69,6 @@ impl Surface for Cone {
         let Self {
             center: c,
             axis: ez,
-            height: _,
             radius_bottom: _,
             tan_alpha: _,
             x_axis: ex,
@@ -96,7 +93,6 @@ impl Surface for Cone {
             let Self {
                 center: _,
                 axis: _,
-                height: _,
                 radius_bottom: _,
                 tan_alpha: _,
                 x_axis: ex,

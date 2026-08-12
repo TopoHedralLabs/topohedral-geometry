@@ -60,6 +60,101 @@ fn rational_surface() -> BSurface {
 }
 
 #[test]
+#[should_panic(expected = "order_u too high")]
+fn new_rejects_u_order_above_maximum() {
+    BSurface::new(usize::MAX, 0, vec![], vec![], vec![], vec![]);
+}
+
+#[test]
+#[should_panic(expected = "order_v too high")]
+fn new_rejects_v_order_above_maximum() {
+    BSurface::new(0, usize::MAX, vec![], vec![], vec![], vec![]);
+}
+
+#[test]
+#[should_panic(expected = "knots u not sorted")]
+fn new_rejects_unsorted_u_knots() {
+    BSurface::new(
+        0,
+        0,
+        vec![1.0, 0.0],
+        vec![0.0, 1.0],
+        vec![point([0.0, 0.0, 0.0])],
+        vec![1.0],
+    );
+}
+
+#[test]
+#[should_panic(expected = "knots v not sorted")]
+fn new_rejects_unsorted_v_knots() {
+    BSurface::new(
+        0,
+        0,
+        vec![0.0, 1.0],
+        vec![1.0, 0.0],
+        vec![point([0.0, 0.0, 0.0])],
+        vec![1.0],
+    );
+}
+
+#[test]
+#[should_panic(expected = "Weights must be positive")]
+fn new_rejects_negative_weights() {
+    BSurface::new(
+        0,
+        0,
+        vec![0.0, 1.0],
+        vec![0.0, 1.0],
+        vec![point([0.0, 0.0, 0.0])],
+        vec![-1.0],
+    );
+}
+
+#[test]
+#[should_panic(expected = "Points and weights must have same size")]
+fn new_rejects_mismatched_point_and_weight_counts() {
+    BSurface::new(
+        0,
+        0,
+        vec![0.0, 1.0],
+        vec![0.0, 1.0],
+        vec![point([0.0, 0.0, 0.0])],
+        vec![1.0, 1.0],
+    );
+}
+
+#[test]
+#[should_panic(expected = "Knots have wrong size")]
+fn new_rejects_inconsistent_control_net_size() {
+    BSurface::new(
+        1,
+        1,
+        vec![0.0, 0.0, 1.0, 1.0],
+        vec![0.0, 0.0, 1.0, 1.0],
+        vec![point([0.0, 0.0, 0.0])],
+        vec![1.0],
+    );
+}
+
+#[test]
+#[should_panic(expected = "Knots u have wrong size")]
+fn new_rejects_too_short_u_knot_vector() {
+    BSurface::new(2, 0, vec![0.0, 1.0], vec![0.0, 1.0], vec![], vec![]);
+}
+
+#[test]
+#[should_panic(expected = "Knots v have wrong size")]
+fn new_rejects_too_short_v_knot_vector() {
+    BSurface::new(0, 2, vec![0.0, 1.0], vec![0.0, 1.0], vec![], vec![]);
+}
+
+#[test]
+#[should_panic(expected = "At least one point is required")]
+fn new_rejects_empty_control_net() {
+    BSurface::new(1, 1, vec![0.0, 1.0], vec![0.0, 1.0], vec![], vec![]);
+}
+
+#[test]
 fn eval_point_matches_polynomial_and_rational_reference_values() {
     assert_vector_eq(
         &polynomial_surface().eval_point(0.25, 0.4),

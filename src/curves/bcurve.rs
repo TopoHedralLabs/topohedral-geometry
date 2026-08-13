@@ -503,6 +503,16 @@ impl BCurve {
         *points_w_before = point_w_after[..=nh].to_vec();
     }
     //}}}
+    //{{{ fun: with_elevated_degree
+    pub fn with_elevated_degree(
+        &self,
+        q: usize,
+    ) -> Self {
+        let mut new = self.clone();
+        new.elevate_degree(q);
+        new
+    }
+    //}}}
     //{{{ fun: is_rational
     pub fn is_rational(&self) -> bool {
         let w00 = self.points_w[0][3];

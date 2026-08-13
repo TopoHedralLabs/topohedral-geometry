@@ -21,6 +21,7 @@ use topohedral_tracing::trace_fn;
 //--------------------------------------------------------------------------------------------------
 
 //{{{ struct: BSurface
+#[derive(Debug, Clone, Default)]
 pub struct BSurface {
     order_u: usize,
     order_v: usize,
@@ -101,10 +102,93 @@ impl BSurface {
             .any(|vec| !ulps_eq!(vec[3], w00, max_ulps = WEIGHT_ULPS))
     }
     //}}}
+    pub fn insert_knot_u(
+        &mut self,
+        u: f64,
+        num_insertions: usize,
+    ) {
+    }
+    pub fn with_inserted_knot_u(
+        &self,
+        u: f64,
+        num_insertions: usize,
+    ) -> Self {
+        let mut new = self.clone();
+        new.insert_knot_u(u, num_insertions);
+        new
+    }
+    pub fn refine_knots_u(
+        &mut self,
+        u: &[f64],
+    ) {
+    }
+    pub fn with_refined_knots_u(
+        &self,
+        u: &[f64],
+    ) -> Self {
+        let mut new = self.clone();
+        new.refine_knots_u(u);
+        new
+    }
+    pub fn elevate_degree_u(
+        &mut self,
+        q: usize,
+    ) {
+    }
+    pub fn with_elevated_degree_u(
+        &self,
+        q: usize,
+    ) -> Self {
+        let mut new = self.clone();
+        new.elevate_degree_u(q);
+        new
+    }
+    pub fn insert_knot_v(
+        &mut self,
+        v: f64,
+        num_insertions: usize,
+    ) {
+    }
+    pub fn with_inserted_knot_v(
+        &self,
+        v: f64,
+        num_insertions: usize,
+    ) -> Self {
+        let mut new = self.clone();
+        new.insert_knot_v(v, num_insertions);
+        new
+    }
+    pub fn refine_knots_v(
+        &mut self,
+        v: &[f64],
+    ) {
+    }
+    pub fn with_refined_knots_v(
+        &mut self,
+        v: &[f64],
+    ) -> Self {
+        let mut new = self.clone();
+        new.refine_knots_v(v);
+        new
+    }
+    pub fn elevate_degree_v(
+        &mut self,
+        q: usize,
+    ) {
+    }
+    pub fn with_elevated_degree_v(
+        &self,
+        q: usize,
+    ) -> Self {
+        let mut new = self.clone();
+        new.elevate_degree_v(q);
+        new
+    }
 }
 //}}}
 //{{{ impl: Surface for BSurface
 impl Surface for BSurface {
+    //{{{ fun: eval_point
     fn eval_point(
         &self,
         u: f64,
@@ -142,7 +226,8 @@ impl Surface for BSurface {
         }
         inv_homog(&point_w)
     }
-
+    //}}}
+    //{{{ fun: eval_derivative
     fn eval_derivative(
         &self,
         u: f64,
@@ -162,7 +247,8 @@ impl Surface for BSurface {
         );
         derivatives[&[m, n]]
     }
-
+    //}}}
+    //{{{ fun: eval_all_derivatives
     fn eval_all_derivatives(
         &self,
         u: f64,
@@ -266,5 +352,6 @@ impl Surface for BSurface {
 
         derivatives.copy_from_slice(&surface_derivatives.as_slice()[..derivatives.len()]);
     }
+    //}}}
 }
 //}}}

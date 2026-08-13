@@ -7,6 +7,7 @@
 //}}}
 //{{{ std imports
 use std::{
+    array::from_fn,
     num,
     ops::{Index, IndexMut},
 };
@@ -65,12 +66,18 @@ pub(crate) fn homog(
 /// $$
 /// todo
 /// $$
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub(crate) struct IndexHelper<const N: usize> {
     /// Helper array for converting a multi-dimensional index into a linear index
     lin_helper: [usize; N],
 }
 //}}}
+impl<const N: usize> Default for IndexHelper<N> {
+    fn default() -> Self {
+        IndexHelper { lin_helper: [0; N] }
+    }
+}
 //{{{ impl: IndexHelper
 impl<const N: usize> IndexHelper<N> {
     pub fn new(dims: &[usize]) -> Self {
@@ -195,6 +202,7 @@ where
 }
 //}}}
 //{{{ struct: Array
+#[derive(Debug, Clone, Default)]
 pub(crate) struct DynArray<T, const DIM: usize>
 where
     T: Clone,

@@ -41,7 +41,7 @@ pub(crate) fn sin_derivative(
         0 => u.sin(),
         1 => u.cos(),
         2 => -u.sin(),
-        4 => -u.cos(),
+        3 => -u.cos(),
         _ => {
             panic!("Unexpected modulo")
         }

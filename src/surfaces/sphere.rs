@@ -16,12 +16,28 @@ use crate::utils::{cos_derivative, is_unit_vector, orthogonal_vector, sin_deriva
 //}}}
 //--------------------------------------------------------------------------------------------------
 
+#[derive(Debug, Clone, Copy)]
 pub struct Sphere {
     center: Vec3,
     radius: f64,
     x_axis: Vec3,
     y_axis: Vec3,
     z_axis: Vec3,
+}
+
+impl Default for Sphere {
+    fn default() -> Self {
+        let ex = Vec3::from_col_slice(&[1.0, 0.0, 0.0]);
+        let ey = Vec3::from_col_slice(&[0.0, 1.0, 0.0]);
+        let ez = Vec3::from_col_slice(&[0.0, 0.0, 1.0]);
+        Self {
+            center: Vec3::zeros(),
+            radius: 1.0,
+            x_axis: ex,
+            y_axis: ey,
+            z_axis: ez,
+        }
+    }
 }
 
 impl Sphere {
@@ -42,7 +58,14 @@ impl Sphere {
         }
     }
 
-    fn eval_latitude(
+    pub fn center(&self) -> &Vec3 {
+        &self.center
+    }
+    pub fn radius(&self) -> f64 {
+        self.radius
+    }
+
+    fn eval_latitude_derivative(
         &self,
         u: f64,
         m: usize,
@@ -65,7 +88,7 @@ impl Surface for Sphere {
             z_axis: ez,
         } = self;
         let r = *radius;
-        (c + r * v.cos() * self.eval_latitude(u, 0) + r * v.sin() * ez).into()
+        (c + r * v.cos() * self.eval_latitude_derivative(u, 0) + r * v.sin() * ez).into()
     }
 
     fn eval_derivative(
@@ -80,6 +103,6 @@ impl Surface for Sphere {
         }
         let r = self.radius;
         let ez = self.z_axis;
-        r * (cos_derivative(v, n) * self.eval_latitude(u, m) + sin_derivative(v, n) * ez)
+        r * (cos_derivative(v, n) * self.eval_latitude_derivative(u, m) + sin_derivative(v, n) * ez)
     }
 }

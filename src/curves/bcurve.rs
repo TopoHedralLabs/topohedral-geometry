@@ -71,6 +71,29 @@ impl BCurve {
         }
     }
     //}}}
+    //{{{ fun: from_points_w
+    /// Constructs a curve directly from its homogeneous control points.
+    ///
+    /// This skips the validation performed by [`BCurve::new`] and is intended for callers which
+    /// have already produced a consistent order/knots/control-points triple, such as the row-wise
+    /// and column-wise operations of [`crate::BSurface`].
+    pub(crate) fn from_points_w(
+        order: usize,
+        knots: Vec<f64>,
+        points_w: Vec<Vec4>,
+    ) -> Self {
+        debug_assert_eq!(
+            knots.len(),
+            points_w.len() + order + 1,
+            "Knots have wrong size"
+        );
+        Self {
+            order,
+            knots,
+            points_w,
+        }
+    }
+    //}}}
     //{{{ fun: dimension
     pub fn dimension(&self) -> usize {
         3

@@ -9,6 +9,7 @@ use crate::utils::{is_unit_vector, orthogonal_vector};
 use crate::Curve;
 //}}}
 //{{{ std imports
+use std::f64;
 //}}}
 //{{{ dep imports
 use topohedral_linalg::VectorOps;
@@ -80,5 +81,9 @@ impl Curve for Circle {
             let sign = if is_odd { -1.0 } else { 1.0 };
             (sign * r * (-u.sin() * ex + u.cos() * ey)).into()
         }
+    }
+
+    fn param_range(&self) -> (f64, f64) {
+        (f64::NEG_INFINITY, f64::INFINITY)
     }
 }

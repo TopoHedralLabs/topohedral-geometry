@@ -14,9 +14,16 @@ use crate::common::Vec3;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
+//{{{ trait: Curve
 pub trait Curve {
-    fn dimension(&self) -> usize {
-        3
+    fn param_range(&self) -> (f64, f64);
+
+    fn in_range(
+        &self,
+        u: f64,
+    ) -> bool {
+        let range = self.param_range();
+        u >= range.0 && u <= range.1
     }
 
     fn eval_point(
@@ -111,3 +118,4 @@ pub trait Curve {
         0.0
     }
 }
+//}}}

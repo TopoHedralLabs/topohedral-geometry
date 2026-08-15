@@ -8,6 +8,7 @@
 //{{{ std imports
 //}}}
 //{{{ dep imports
+use ctor::ctor;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
@@ -16,6 +17,7 @@ mod curves;
 mod splines;
 mod surfaces;
 mod utils;
+mod vtk;
 
 pub use common::{Vec3, Vec4};
 pub use curves::{BCurve, Circle, Curve, Ellipse, Hyperbola, Line, Parabola};
@@ -24,3 +26,14 @@ pub use splines::{
     knot_multiplicity, multiplicites as knot_multiplicities,
 };
 pub use surfaces::{BSurface, Cone, Cylinder, Plane, Sphere, Surface};
+
+#[cfg(test)]
+mod test_init {
+    use ctor::ctor;
+    use topohedral_tracing::init;
+
+    #[ctor]
+    fn init_logger() {
+        init().expect("failed to initialize topohedral logger");
+    }
+}

@@ -38,6 +38,10 @@ impl Parabola {
 }
 
 impl Curve for Parabola {
+    fn param_range(&self) -> (f64, f64) {
+        (f64::NEG_INFINITY, f64::INFINITY)
+    }
+
     fn eval_point(
         &self,
         u: f64,

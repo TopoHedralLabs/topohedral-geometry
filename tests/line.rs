@@ -43,7 +43,6 @@ fn reference_line() -> Line {
 fn dimension_and_point_evaluation() {
     let line = reference_line();
 
-    assert_eq!(line.dimension(), 3);
     assert_vector_eq(&line.eval_point(0.0), &[1.0, -2.0, 3.0]);
     assert_vector_eq(
         &line.eval_point(0.5),

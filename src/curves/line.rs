@@ -46,4 +46,8 @@ impl Curve for Line {
             Vec3::zeros()
         }
     }
+
+    fn param_range(&self) -> (f64, f64) {
+        (f64::NEG_INFINITY, f64::INFINITY)
+    }
 }

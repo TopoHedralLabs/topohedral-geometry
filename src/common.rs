@@ -73,11 +73,13 @@ pub(crate) struct IndexHelper<const N: usize> {
     lin_helper: [usize; N],
 }
 //}}}
+//{{{ impl Default for IndexHelper
 impl<const N: usize> Default for IndexHelper<N> {
     fn default() -> Self {
         IndexHelper { lin_helper: [0; N] }
     }
 }
+//}}}
 //{{{ impl: IndexHelper
 impl<const N: usize> IndexHelper<N> {
     pub fn new(dims: &[usize]) -> Self {

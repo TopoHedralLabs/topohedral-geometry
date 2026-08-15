@@ -9,6 +9,7 @@ use crate::utils::{is_unit_vector, orthogonal_vector};
 use crate::Curve;
 //}}}
 //{{{ std imports
+use std::f64;
 //}}}
 //{{{ dep imports
 use topohedral_linalg::VectorOps;
@@ -47,6 +48,10 @@ impl Ellipse {
 }
 
 impl Curve for Ellipse {
+    fn param_range(&self) -> (f64, f64) {
+        (f64::NEG_INFINITY, f64::INFINITY)
+    }
+
     fn eval_point(
         &self,
         u: f64,

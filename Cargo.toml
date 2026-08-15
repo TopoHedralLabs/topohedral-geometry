@@ -13,6 +13,5 @@ topohedral-linalg = {version = "5.0.0", registry = "cloudsmith"}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 thiserror = "2.0.17"
-
-[dev-dependencies]
+vtkio = "0.6.3"
 ctor = "0.6.3"

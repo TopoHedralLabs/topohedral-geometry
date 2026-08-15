@@ -6,9 +6,10 @@
 //{{{ crate imports
 use super::common::Curve;
 use crate::common::{binom_coeff, homog, inv_homog, StatArray, Vec3, Vec4};
-use crate::knot_multiplicity;
 use crate::splines::{self, find_span, is_member, knot_eq, PMAX, PMAX_SQR};
 use crate::utils::WEIGHT_ULPS;
+use crate::vtk::{ToVtk, VtkUgridFile};
+use crate::{knot_multiplicity, vtk};
 //}}}
 //{{{ std imports
 //}}}
@@ -16,6 +17,7 @@ use crate::utils::WEIGHT_ULPS;
 use approx::ulps_eq;
 use topohedral_linalg::TransformOps;
 use topohedral_tracing::*;
+use vtkio::model::CellType;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
@@ -551,8 +553,8 @@ impl BCurve {
 //}}}
 //{{{ impl Curve for Bcurve
 impl Curve for BCurve {
-    fn dimension(&self) -> usize {
-        3
+    fn param_range(&self) -> (f64, f64) {
+        (*self.knots.first().unwrap(), *self.knots.last().unwrap())
     }
 
     fn eval_point(
@@ -639,6 +641,108 @@ impl Curve for BCurve {
                 derivatives[m].copy_from(&ders_loc[m]);
             }
         }
+    }
+}
+//}}}
+
+pub(crate) struct VtkOptions {
+    pub(crate) ustart: f64,
+    pub(crate) uend: f64,
+    pub(crate) num_points: usize,
+    pub(crate) show_control_points: bool,
+}
+
+impl ToVtk for BCurve {
+    type Options = VtkOptions;
+
+    #[trace_fn]
+    fn add_to_vtk(
+        &self,
+        opts: Self::Options,
+        vtk_file: &mut VtkUgridFile,
+    ) {
+        let np_init = vtk_file.num_points() as u64;
+        let nc_init = vtk_file.num_cells() as u64;
+
+        //{{{ trace
+        trace!("np_init = {np_init} nc_init = {nc_init}");
+        //}}}
+
+        let VtkOptions {
+            ustart,
+            uend,
+            num_points,
+            show_control_points,
+        } = opts;
+
+        let num_segments = (num_points - 1) as u64;
+        let du = (uend - ustart) / num_segments as f64;
+        let mut ui = 0.0;
+        for _ in 0..num_points {
+            let xi = self.eval_point(ui);
+            //{{{ trace
+            trace!("ui = {ui:.4e} xi = {xi}");
+            //}}}
+            vtk_file.add_point(xi);
+            ui += du;
+        }
+
+        let cell: Vec<u64> = (np_init..(np_init + num_segments)).collect();
+        vtk_file.add_cell(cell, CellType::PolyLine);
+    }
+}
+
+//-------------------------------------------------------------------------------------------------
+//{{{ mod: tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    //{{{ fun: point
+    fn point(values: [f64; 3]) -> Vec3 {
+        Vec3::from_col_slice(&values)
+    }
+    //}}}
+    //{{{ fun: reference_curve
+    fn reference_curve() -> BCurve {
+        BCurve::new(
+            4,
+            vec![
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.2, 0.4, 0.7, 0.7, 0.8, 1.0, 1.0, 1.0, 1.0, 1.0,
+            ],
+            vec![
+                point([0.0, 0.0, 0.0]),
+                point([1.0, 1.0, 1.0]),
+                point([2.0, -1.0, 2.0]),
+                point([3.0, 0.0, 2.0]),
+                point([5.0, -2.0, 1.0]),
+                point([6.0, -3.0, -1.0]),
+                point([8.0, -4.0, -1.0]),
+                point([10.0, -5.0, -2.0]),
+                point([10.0, -6.0, -2.0]),
+                point([9.0, -6.0, -1.0]),
+                point([8.0, -5.0, 0.0]),
+                point([7.0, -4.0, 0.0]),
+            ],
+            vec![1.0, 2.0, 3.0, 2.0, 1.0, 2.0, 3.0, 2.0, 1.0, 2.0, 3.0, 2.0],
+        )
+    }
+    //}}}
+
+    #[test]
+    fn test_vtk_output() {
+        let curve = reference_curve();
+        let mut vtk_file = VtkUgridFile::default();
+        curve.add_to_vtk(
+            VtkOptions {
+                ustart: 0.0,
+                uend: 1.0,
+                num_points: 100,
+                show_control_points: false,
+            },
+            &mut vtk_file,
+        );
+        vtk_file.save("bcurve.vtu");
     }
 }
 //}}}

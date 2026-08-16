@@ -6,10 +6,14 @@
 //{{{ crate imports
 use crate::{
     common::{binom_coeff, homog, inv_homog, DynArray, StatArray},
-    splines::{self, is_member, PMAX, PMAX_PLUS_ONE, PMAX_PLUS_ONE_SQR},
+    curves::BCurveVtkOptions,
+    splines::{self, is_member, non_zero_basis, PMAX, PMAX_PLUS_ONE, PMAX_PLUS_ONE_SQR},
+    surfaces::common::add_surface_to_vtk,
     utils::WEIGHT_ULPS,
+    vtk::{ToVtk, VtkUgridFile},
     BCurve, Surface, Vec3, Vec4,
 };
+
 //}}}
 //{{{ std imports
 //}}}
@@ -17,6 +21,7 @@ use crate::{
 use approx::ulps_eq;
 use topohedral_linalg::SubViewable;
 use topohedral_tracing::trace_fn;
+use vtkio::model::CellType;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
@@ -337,6 +342,52 @@ impl BSurface {
         new
     }
     //}}}
+    //{{{ fun: extract_isocurve_at_u
+    pub fn extract_isocurve_at_u(
+        &self,
+        u: f64,
+    ) -> BCurve {
+        let (start_u, end_u, _) = non_zero_basis(&self.knots_u, u, self.order_u);
+        let mut basis_funs_u = [0.0; PMAX_PLUS_ONE];
+        splines::eval(&self.knots_u, u, self.order_u, &mut basis_funs_u);
+
+        let p = self.order_v;
+        let knots = self.knots_v.clone();
+        let num_points_v = self.num_points_v();
+        let mut points_w = Vec::<Vec4>::with_capacity(num_points_v);
+        for i in 0..num_points_v {
+            let mut new_point_w = Vec4::zeros();
+            for j in start_u..end_u {
+                new_point_w += basis_funs_u[j - start_u] * self.points_w[&[j, i]]
+            }
+            points_w.push(new_point_w);
+        }
+        BCurve::from_points_w(p, knots, points_w)
+    }
+    //}}}
+    //{{{ fun: extract_isocurve_v
+    pub fn extract_isocurve_at_v(
+        &self,
+        v: f64,
+    ) -> BCurve {
+        let (start_v, end_v, _) = non_zero_basis(&self.knots_v, v, self.order_v);
+        let mut basis_funs_v = [0.0; PMAX_PLUS_ONE];
+        splines::eval(&self.knots_v, v, self.order_v, &mut basis_funs_v);
+
+        let p = self.order_u;
+        let knots = self.knots_u.clone();
+        let num_points_u = self.num_points_u();
+        let mut points_w = Vec::<Vec4>::with_capacity(num_points_u);
+        for i in 0..num_points_u {
+            let mut new_point_w = Vec4::zeros();
+            for j in start_v..end_v {
+                new_point_w += basis_funs_v[j - start_v] * self.points_w[&[i, j]]
+            }
+            points_w.push(new_point_w);
+        }
+        BCurve::from_points_w(p, knots, points_w)
+    }
+    //}}}
 }
 //}}}
 //{{{ impl: Surface for BSurface
@@ -506,5 +557,139 @@ impl Surface for BSurface {
         derivatives.copy_from_slice(&surface_derivatives.as_slice()[..derivatives.len()]);
     }
     //}}}
+}
+//}}}
+//{{{ struct: VtkOptions
+pub(crate) struct VtkOptions {
+    u_range: (f64, f64),
+    v_range: (f64, f64),
+    num_points: (usize, usize),
+    show_control_points: bool,
+    isolines: Option<(Vec<f64>, Vec<f64>)>,
+}
+//}}}
+//{{{ impl: ToVtk for BSurface
+impl ToVtk for BSurface {
+    type Options = VtkOptions;
+
+    fn add_to_vtk(
+        &self,
+        opts: Self::Options,
+        vtk_file: &mut VtkUgridFile,
+    ) {
+        let VtkOptions {
+            u_range,
+            v_range,
+            num_points,
+            show_control_points,
+            isolines,
+        } = opts;
+
+        add_surface_to_vtk(self, u_range, v_range, num_points, vtk_file);
+
+        if show_control_points {
+            let np_init = vtk_file.num_points() as u64;
+            for (i, point_w) in self.points_w.iter().enumerate() {
+                let point = inv_homog(point_w);
+                vtk_file.add_point(point);
+                vtk_file.add_cell(vec![np_init + i as u64], CellType::Vertex);
+            }
+            // do the u-directions
+            for j in 0..self.num_points_v() {
+                for i in 0..self.num_points_u() - 1 {
+                    let idx1 = np_init + self.points_w.index_helper().lin_index(&[i, j]) as u64;
+                    let idx2 = np_init + self.points_w.index_helper().lin_index(&[i + 1, j]) as u64;
+                    vtk_file.add_cell(vec![idx1, idx2], CellType::Line);
+                }
+            }
+
+            // do the v-directions
+            for i in 0..self.num_points_u() {
+                for j in 0..self.num_points_v() - 1 {
+                    let idx1 = np_init + self.points_w.index_helper().lin_index(&[i, j]) as u64;
+                    let idx2 = np_init + self.points_w.index_helper().lin_index(&[i, j + 1]) as u64;
+                    vtk_file.add_cell(vec![idx1, idx2], CellType::Line);
+                }
+            }
+        }
+
+        if let Some((isolines_u, isolines_v)) = isolines {
+            for u in isolines_u {
+                let iso_curve_u = self.extract_isocurve_at_u(u);
+                iso_curve_u.add_to_vtk(
+                    BCurveVtkOptions {
+                        ustart: u_range.0,
+                        uend: u_range.1,
+                        num_points: 10 * num_points.0,
+                        show_control_points: false,
+                    },
+                    vtk_file,
+                );
+            }
+            for v in isolines_v {
+                let iso_curve_v = self.extract_isocurve_at_v(v);
+                iso_curve_v.add_to_vtk(
+                    BCurveVtkOptions {
+                        ustart: v_range.0,
+                        uend: v_range.1,
+                        num_points: 10 * num_points.1,
+                        show_control_points: false,
+                    },
+                    vtk_file,
+                );
+            }
+        }
+    }
+}
+//}}}
+
+//-------------------------------------------------------------------------------------------------
+//{{{ mod: tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn reference_surface() -> BSurface {
+        let order_u = 3;
+        let order_v = 2;
+        let knots_u = vec![0.0, 0.0, 0.0, 0.0, 0.25, 0.5, 0.75, 1.0, 1.0, 1.0, 1.0];
+        let knots_v = vec![0.0, 0.0, 0.0, 0.3, 0.6, 1.0, 1.0, 1.0];
+
+        let num_points_u = knots_u.len() - order_u - 1;
+        let num_points_v = knots_v.len() - order_v - 1;
+        let mut points = Vec::with_capacity(num_points_u * num_points_v);
+        let mut weights = Vec::with_capacity(num_points_u * num_points_v);
+        for i in 0..num_points_u {
+            for j in 0..num_points_v {
+                points.push(Vec3::from_col_slice(&[
+                    i as f64,
+                    1.5 * j as f64,
+                    ((i * j) % 5) as f64 - 2.0,
+                ]));
+                weights.push(1.0 + 0.25 * ((i + 2 * j) % 4) as f64);
+            }
+        }
+
+        BSurface::new(order_u, order_v, knots_u, knots_v, points, weights)
+    }
+
+    #[test]
+    fn test_vtk_output() {
+        let surface = reference_surface();
+        let mut vtk_file = VtkUgridFile::default();
+        surface.add_to_vtk(
+            VtkOptions {
+                u_range: (0.0, 1.0),
+                v_range: (0.0, 1.0),
+                num_points: (100, 100),
+                show_control_points: true,
+                isolines: Some((vec![0.2, 0.2, 0.6, 0.8], vec![0.2, 0.2, 0.6, 0.8])),
+            },
+            &mut vtk_file,
+        );
+        vtk_file
+            .save("bsurface.vtu")
+            .expect("B-surface VTK output should be written");
+    }
 }
 //}}}

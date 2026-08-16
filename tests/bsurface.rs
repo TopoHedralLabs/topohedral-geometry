@@ -1,7 +1,7 @@
 //! Tests for tensor-product B-spline surface evaluation.
 
 use approx::assert_relative_eq;
-use topohedral_geometry::{knot_multiplicities, BSurface, Surface, Vec3};
+use topohedral_geometry::{knot_multiplicities, BSurface, Curve, Surface, Vec3};
 
 fn point(values: [f64; 3]) -> Vec3 {
     Vec3::from_col_slice(&values)
@@ -254,6 +254,42 @@ fn assert_vectors_close(
         assert_relative_eq!(*actual, expected, epsilon = 1.0e-10, max_relative = 1.0e-10);
     }
 }
+//}}}
+//{{{ collection: iso-curve extraction
+//{{{ test: extract_isocurve_at_u_matches_surface
+#[test]
+fn extract_isocurve_at_u_matches_surface() {
+    let surface = reference_surface();
+
+    for u in [0.0, 0.25, 0.42, 0.5, 1.0] {
+        let curve = surface.extract_isocurve_at_u(u);
+
+        assert_eq!(curve.order(), surface.order_v());
+        assert_eq!(curve.knots(), surface.knots_v());
+
+        for v in [0.0, 0.3, 0.47, 0.6, 1.0] {
+            assert_vectors_close(&curve.eval_point(v), &surface.eval_point(u, v));
+        }
+    }
+}
+//}}}
+//{{{ test: extract_isocurve_at_v_matches_surface
+#[test]
+fn extract_isocurve_at_v_matches_surface() {
+    let surface = reference_surface();
+
+    for v in [0.0, 0.3, 0.47, 0.6, 1.0] {
+        let curve = surface.extract_isocurve_at_v(v);
+
+        assert_eq!(curve.order(), surface.order_u());
+        assert_eq!(curve.knots(), surface.knots_u());
+
+        for u in [0.0, 0.25, 0.42, 0.5, 1.0] {
+            assert_vectors_close(&curve.eval_point(u), &surface.eval_point(u, v));
+        }
+    }
+}
+//}}}
 //}}}
 //{{{ fun: assert_surfaces_agree
 /// Asserts that two surfaces are the same map, by comparing points and low-order derivatives on a
@@ -623,4 +659,3 @@ fn elevate_degree_after_refinement() {
 }
 //}}}
 //}}}
-

@@ -260,6 +260,10 @@ where
     pub fn as_slice_mut(&mut self) -> &mut [T] {
         &mut self.data
     }
+
+    pub fn index_helper(&self) -> &IndexHelper<DIM> {
+        &self.index_helper
+    }
 }
 //}}}
 //{{{ impl: Deref for DynArray

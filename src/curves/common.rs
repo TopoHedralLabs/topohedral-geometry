@@ -132,19 +132,11 @@ pub(crate) fn add_curve_to_vtk<C: Curve + ?Sized>(
     assert!(num_points >= 2, "at least two points are required");
 
     let np_init = vtk_file.num_points() as u64;
-    let nc_init = vtk_file.num_cells() as u64;
-
-    //{{{ trace
-    trace!("np_init = {np_init} nc_init = {nc_init}");
-    //}}}
     let num_segments = (num_points - 1) as u64;
     let du = (uend - ustart) / num_segments as f64;
     let mut ui = ustart;
     for _ in 0..num_points {
         let xi = curve.eval_point(ui);
-        //{{{ trace
-        trace!("ui = {ui:.4e} xi = {xi}");
-        //}}}
         vtk_file.add_point(xi);
         ui += du;
     }

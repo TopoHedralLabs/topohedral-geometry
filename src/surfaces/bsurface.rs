@@ -6,7 +6,7 @@
 //{{{ crate imports
 use crate::{
     common::{binom_coeff, homog, inv_homog, DynArray, StatArray},
-    curves::BCurveVtkOptions,
+    curves::{BCurveVtkOptions, CurveVtkOptions},
     splines::{self, is_member, non_zero_basis, PMAX, PMAX_PLUS_ONE, PMAX_PLUS_ONE_SQR},
     surfaces::common::{add_surface_to_vtk, SurfaceVtkOptions},
     utils::WEIGHT_ULPS,
@@ -619,9 +619,11 @@ impl ToVtk for BSurface {
                 let iso_curve_u = self.extract_isocurve_at_u(u);
                 iso_curve_u.add_to_vtk(
                     BCurveVtkOptions {
-                        ustart: u_range.0,
-                        uend: u_range.1,
-                        num_points: 10 * num_points.0,
+                        curve: CurveVtkOptions {
+                            ustart: u_range.0,
+                            uend: u_range.1,
+                            num_points: 10 * num_points.0,
+                        },
                         show_control_points: false,
                     },
                     vtk_file,
@@ -631,9 +633,11 @@ impl ToVtk for BSurface {
                 let iso_curve_v = self.extract_isocurve_at_v(v);
                 iso_curve_v.add_to_vtk(
                     BCurveVtkOptions {
-                        ustart: v_range.0,
-                        uend: v_range.1,
-                        num_points: 10 * num_points.1,
+                        curve: CurveVtkOptions {
+                            ustart: v_range.0,
+                            uend: v_range.1,
+                            num_points: 10 * num_points.1,
+                        },
                         show_control_points: false,
                     },
                     vtk_file,

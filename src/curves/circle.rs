@@ -5,7 +5,7 @@
 
 //{{{ crate imports
 use crate::common::Vec3;
-use crate::curves::common::add_curve_to_vtk;
+use crate::curves::common::{add_curve_to_vtk, CurveVtkOptions};
 use crate::utils::{is_unit_vector, orthogonal_vector};
 use crate::vtk::{ToVtk, VtkUgridFile};
 use crate::Curve;
@@ -92,9 +92,7 @@ impl Curve for Circle {
 }
 
 pub(crate) struct VtkOptions {
-    pub(crate) ustart: f64,
-    pub(crate) uend: f64,
-    pub(crate) num_points: usize,
+    pub(crate) curve: CurveVtkOptions,
     pub(crate) show_center: bool,
 }
 
@@ -107,9 +105,12 @@ impl ToVtk for Circle {
         vtk_file: &mut VtkUgridFile,
     ) {
         let VtkOptions {
-            ustart,
-            uend,
-            num_points,
+            curve:
+                CurveVtkOptions {
+                    ustart,
+                    uend,
+                    num_points,
+                },
             show_center,
         } = opts;
 
@@ -138,9 +139,11 @@ mod tests {
         let mut vtk_file = VtkUgridFile::default();
         curve.add_to_vtk(
             VtkOptions {
-                ustart: 0.0,
-                uend: std::f64::consts::TAU,
-                num_points: 100,
+                curve: CurveVtkOptions {
+                    ustart: 0.0,
+                    uend: std::f64::consts::TAU,
+                    num_points: 100,
+                },
                 show_center: false,
             },
             &mut vtk_file,

@@ -4,7 +4,7 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
-use super::common::{add_curve_to_vtk, Curve};
+use super::common::{add_curve_to_vtk, Curve, CurveVtkOptions};
 use crate::common::{binom_coeff, homog, inv_homog, StatArray, Vec3, Vec4};
 use crate::splines::{self, find_span, is_member, knot_eq, PMAX, PMAX_SQR};
 use crate::utils::WEIGHT_ULPS;
@@ -646,9 +646,7 @@ impl Curve for BCurve {
 //}}}
 
 pub(crate) struct VtkOptions {
-    pub(crate) ustart: f64,
-    pub(crate) uend: f64,
-    pub(crate) num_points: usize,
+    pub(crate) curve: CurveVtkOptions,
     pub(crate) show_control_points: bool,
 }
 
@@ -662,9 +660,12 @@ impl ToVtk for BCurve {
         vtk_file: &mut VtkUgridFile,
     ) {
         let VtkOptions {
-            ustart,
-            uend,
-            num_points,
+            curve:
+                CurveVtkOptions {
+                    ustart,
+                    uend,
+                    num_points,
+                },
             show_control_points,
         } = opts;
         add_curve_to_vtk(self, ustart, uend, num_points, vtk_file);
@@ -727,9 +728,11 @@ mod tests {
         let mut vtk_file = VtkUgridFile::default();
         curve.add_to_vtk(
             VtkOptions {
-                ustart: 0.0,
-                uend: 1.0,
-                num_points: 100,
+                curve: CurveVtkOptions {
+                    ustart: 0.0,
+                    uend: 1.0,
+                    num_points: 100,
+                },
                 show_control_points: true,
             },
             &mut vtk_file,

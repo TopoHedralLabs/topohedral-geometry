@@ -2,7 +2,7 @@
 
 use crate::{
     common::Vec3,
-    curves::common::add_curve_to_vtk,
+    curves::common::{add_curve_to_vtk, CurveVtkOptions},
     utils::{is_unit_vector, orthogonal_vector},
     vtk::{ToVtk, VtkUgridFile},
     Curve,
@@ -88,18 +88,12 @@ impl Curve for Hyperbola {
     }
 }
 
-pub(crate) struct VtkOptions {
-    pub(crate) ustart: f64,
-    pub(crate) uend: f64,
-    pub(crate) num_points: usize,
-}
-
 impl ToVtk for Hyperbola {
-    type Options = VtkOptions;
+    type Options = CurveVtkOptions;
 
     fn add_to_vtk(
         &self,
-        VtkOptions {
+        CurveVtkOptions {
             ustart,
             uend,
             num_points,
@@ -124,7 +118,7 @@ mod tests {
         );
         let mut vtk_file = VtkUgridFile::default();
         curve.add_to_vtk(
-            VtkOptions {
+            CurveVtkOptions {
                 ustart: -1.0,
                 uend: 1.0,
                 num_points: 100,

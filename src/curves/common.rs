@@ -120,6 +120,13 @@ pub trait Curve {
     }
 }
 //}}}
+//{{{ struct: CurveVtkOptions
+pub(crate) struct CurveVtkOptions {
+    pub(crate) ustart: f64,
+    pub(crate) uend: f64,
+    pub(crate) num_points: usize,
+}
+//}}}
 
 #[trace_fn]
 pub(crate) fn add_curve_to_vtk<C: Curve + ?Sized>(

@@ -5,10 +5,14 @@
 
 use topohedral_linalg::VectorOps;
 
-use crate::Surface;
 //{{{ crate imports
 use crate::common::Vec3;
-use crate::utils::{cos_derivative, is_unit_vector, orthogonal_vector, sin_derivative};
+use crate::{
+    surfaces::common::{add_surface_to_vtk, SurfaceVtkOptions},
+    utils::{cos_derivative, is_unit_vector, orthogonal_vector, sin_derivative},
+    vtk::{ToVtk, VtkUgridFile},
+    Surface,
+};
 //}}}
 //{{{ std imports
 //}}}
@@ -104,5 +108,17 @@ impl Surface for Sphere {
         let r = self.radius;
         let ez = self.z_axis;
         r * (cos_derivative(v, n) * self.eval_latitude_derivative(u, m) + sin_derivative(v, n) * ez)
+    }
+}
+
+impl ToVtk for Sphere {
+    type Options = SurfaceVtkOptions;
+
+    fn add_to_vtk(
+        &self,
+        opts: Self::Options,
+        vtk_file: &mut VtkUgridFile,
+    ) {
+        add_surface_to_vtk(self, opts.u_range, opts.v_range, opts.num_points, vtk_file);
     }
 }

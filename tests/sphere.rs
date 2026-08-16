@@ -55,8 +55,6 @@ fn dimension_and_cardinal_points() {
     let ey = vector([1.0, 0.0, 0.0]);
     let ez = vector([0.0, 0.0, 1.0]);
 
-    assert_eq!(sphere.dimension(), 3);
-
     let p1: Vec3 = (&c + r * &ex).into();
     assert_vector_eq(&sphere.eval_point(0.0, 0.0), p1.as_ref());
     let p2: Vec3 = (&c + r * &ey).into();

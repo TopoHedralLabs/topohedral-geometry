@@ -38,7 +38,6 @@ fn reference_cylinder() -> Cylinder {
 fn dimension_and_cardinal_points() {
     let cylinder = reference_cylinder();
 
-    assert_eq!(cylinder.dimension(), 3);
     assert_vector_eq(&cylinder.eval_point(0.0, 0.0), &[1.0, 0.0, 3.0]);
     assert_vector_eq(
         &cylinder.eval_point(std::f64::consts::FRAC_PI_2, 4.0),

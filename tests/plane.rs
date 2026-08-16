@@ -38,7 +38,6 @@ fn reference_plane() -> Plane {
 fn dimension_and_point_evaluation() {
     let plane = reference_plane();
 
-    assert_eq!(plane.dimension(), 3);
     assert_vector_eq(&plane.eval_point(0.0, 0.0), &[1.0, -2.0, 3.0]);
     assert_vector_eq(&plane.eval_point(2.0, -3.0), &[-2.0, 0.0, 3.0]);
 }

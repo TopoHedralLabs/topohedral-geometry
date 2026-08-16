@@ -83,6 +83,13 @@ pub trait Surface {
     }
 }
 //}}}
+//{{{ struct: ParametricSurfaceVtkOptions
+pub(crate) struct SurfaceVtkOptions {
+    pub(crate) u_range: (f64, f64),
+    pub(crate) v_range: (f64, f64),
+    pub(crate) num_points: (usize, usize),
+}
+//}}}
 //{{{ fun: add_surface_to_vtk
 #[trace_fn]
 pub(crate) fn add_surface_to_vtk<S: Surface + ?Sized>(
@@ -120,6 +127,44 @@ pub(crate) fn add_surface_to_vtk<S: Surface + ?Sized>(
             vtk_file.add_cell(tri0, CellType::Triangle);
             vtk_file.add_cell(tri1, CellType::Triangle);
         }
+    }
+}
+//}}}
+
+//-------------------------------------------------------------------------------------------------
+//{{{ mod: tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{vtk::ToVtk, Cone, Cylinder, Plane, Sphere};
+
+    fn assert_vtk_export<S>(surface: S)
+    where
+        S: Surface + ToVtk<Options = SurfaceVtkOptions>,
+    {
+        let mut vtk_file = VtkUgridFile::default();
+        surface.add_to_vtk(
+            SurfaceVtkOptions {
+                u_range: (0.0, 1.0),
+                v_range: (0.0, 1.0),
+                num_points: (3, 2),
+            },
+            &mut vtk_file,
+        );
+
+        assert_eq!(vtk_file.num_points(), 6);
+        assert_eq!(vtk_file.num_cells(), 4);
+    }
+
+    #[test]
+    fn parametric_surfaces_export_to_vtk() {
+        let origin = Vec3::zeros();
+        let z_axis = Vec3::from_col_slice(&[0.0, 0.0, 1.0]);
+
+        assert_vtk_export(Sphere::default());
+        assert_vtk_export(Cone::new(origin, z_axis, 2.0, 2.0, 1.0));
+        assert_vtk_export(Cylinder::new(origin, z_axis, 1.0));
+        assert_vtk_export(Plane::new(origin, z_axis));
     }
 }
 //}}}

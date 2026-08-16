@@ -8,8 +8,11 @@ use topohedral_linalg::VectorOps;
 
 //{{{ crate imports
 use crate::common::Vec3;
-use crate::surfaces::common::Surface;
 use crate::utils::{is_unit_vector, orthogonal_vector};
+use crate::{
+    surfaces::common::{add_surface_to_vtk, Surface, SurfaceVtkOptions},
+    vtk::{ToVtk, VtkUgridFile},
+};
 //}}}
 //{{{ std imports
 //}}}
@@ -73,5 +76,17 @@ impl Surface for Plane {
         }
 
         Vec3::zeros()
+    }
+}
+
+impl ToVtk for Plane {
+    type Options = SurfaceVtkOptions;
+
+    fn add_to_vtk(
+        &self,
+        opts: Self::Options,
+        vtk_file: &mut VtkUgridFile,
+    ) {
+        add_surface_to_vtk(self, opts.u_range, opts.v_range, opts.num_points, vtk_file);
     }
 }

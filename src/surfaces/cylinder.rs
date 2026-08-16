@@ -5,7 +5,9 @@
 
 //{{{ crate imports
 use crate::{
-    utils::{is_unit_vector, orthogonal_vector},
+    surfaces::common::{add_surface_to_vtk, SurfaceVtkOptions},
+    utils::{cos_derivative, is_unit_vector, orthogonal_vector, sin_derivative},
+    vtk::{ToVtk, VtkUgridFile},
     Surface, Vec3,
 };
 //}}}
@@ -44,6 +46,14 @@ impl Cylinder {
             y_axis,
         }
     }
+
+    fn eval_latitude_derivative(
+        &self,
+        u: f64,
+        m: usize,
+    ) -> Vec3 {
+        self.x_axis * cos_derivative(u, m) + self.y_axis * sin_derivative(u, m)
+    }
 }
 
 impl Surface for Cylinder {
@@ -56,10 +66,10 @@ impl Surface for Cylinder {
             center: c,
             axis: ez,
             radius: r,
-            x_axis: ex,
-            y_axis: ey,
+            x_axis: _,
+            y_axis: _,
         } = self;
-        (c + r * u.cos() * ex + r * u.sin() * ey + v * ez).into()
+        (c + *r * self.eval_latitude_derivative(u, 0) + v * ez).into()
     }
 
     fn eval_derivative(
@@ -78,25 +88,21 @@ impl Surface for Cylinder {
         }
 
         if m > 0 && n == 0 {
-            let Self {
-                center: _,
-                axis: _,
-                radius: r,
-                x_axis: ex,
-                y_axis: ey,
-            } = self;
-
-            if m.is_multiple_of(2) {
-                let is_odd = ((m / 2) % 2) == 1;
-                let sign = if is_odd { -1.0 } else { 1.0 };
-                return (sign * r * (u.cos() * ex + u.sin() * ey)).into();
-            } else {
-                let is_odd = ((m / 2) % 2) == 1;
-                let sign = if is_odd { -1.0 } else { 1.0 };
-                return (sign * r * (-u.sin() * ex + u.cos() * ey)).into();
-            }
+            return self.radius * self.eval_latitude_derivative(u, m);
         }
         // all other configurations, mixed derivatives, v derivative > 1 all zero
         Vec3::zeros()
+    }
+}
+
+impl ToVtk for Cylinder {
+    type Options = SurfaceVtkOptions;
+
+    fn add_to_vtk(
+        &self,
+        opts: Self::Options,
+        vtk_file: &mut VtkUgridFile,
+    ) {
+        add_surface_to_vtk(self, opts.u_range, opts.v_range, opts.num_points, vtk_file);
     }
 }

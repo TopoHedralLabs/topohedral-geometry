@@ -9,7 +9,7 @@
 use std::{
     array::from_fn,
     num,
-    ops::{Index, IndexMut},
+    ops::{Deref, DerefMut, Index, IndexMut},
 };
 //}}}
 //{{{ dep imports
@@ -143,6 +143,28 @@ where
     }
 }
 //}}}
+//{{{ impl: Deref for StatArray
+impl<T, const MAX_SIZE: usize, const DIM: usize> Deref for StatArray<T, MAX_SIZE, DIM>
+where
+    T: Clone,
+{
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+//}}}
+//{{{ impl: DerefMut for StatArray
+impl<T, const MAX_SIZE: usize, const DIM: usize> DerefMut for StatArray<T, MAX_SIZE, DIM>
+where
+    T: Clone,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
+    }
+}
+//}}}
 //{{{ impl: Index for StaticArray
 impl<T, const MAX_SIZE: usize, const DIM: usize> Index<&[usize; DIM]>
     for StatArray<T, MAX_SIZE, DIM>
@@ -236,6 +258,28 @@ where
     }
 
     pub fn as_slice_mut(&mut self) -> &mut [T] {
+        &mut self.data
+    }
+}
+//}}}
+//{{{ impl: Deref for DynArray
+impl<T, const DIM: usize> Deref for DynArray<T, DIM>
+where
+    T: Clone,
+{
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+//}}}
+//{{{ impl: DerefMut for DynArray
+impl<T, const DIM: usize> DerefMut for DynArray<T, DIM>
+where
+    T: Clone,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
     }
 }

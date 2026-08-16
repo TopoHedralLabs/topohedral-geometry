@@ -8,7 +8,7 @@ use crate::{
     common::{binom_coeff, homog, inv_homog, DynArray, StatArray},
     curves::BCurveVtkOptions,
     splines::{self, is_member, non_zero_basis, PMAX, PMAX_PLUS_ONE, PMAX_PLUS_ONE_SQR},
-    surfaces::common::add_surface_to_vtk,
+    surfaces::common::{add_surface_to_vtk, SurfaceVtkOptions},
     utils::WEIGHT_ULPS,
     vtk::{ToVtk, VtkUgridFile},
     BCurve, Surface, Vec3, Vec4,
@@ -561,9 +561,7 @@ impl Surface for BSurface {
 //}}}
 //{{{ struct: VtkOptions
 pub(crate) struct VtkOptions {
-    u_range: (f64, f64),
-    v_range: (f64, f64),
-    num_points: (usize, usize),
+    surface: SurfaceVtkOptions,
     show_control_points: bool,
     isolines: Option<(Vec<f64>, Vec<f64>)>,
 }
@@ -578,9 +576,12 @@ impl ToVtk for BSurface {
         vtk_file: &mut VtkUgridFile,
     ) {
         let VtkOptions {
-            u_range,
-            v_range,
-            num_points,
+            surface:
+                SurfaceVtkOptions {
+                    u_range,
+                    v_range,
+                    num_points,
+                },
             show_control_points,
             isolines,
         } = opts;
@@ -679,9 +680,11 @@ mod tests {
         let mut vtk_file = VtkUgridFile::default();
         surface.add_to_vtk(
             VtkOptions {
-                u_range: (0.0, 1.0),
-                v_range: (0.0, 1.0),
-                num_points: (100, 100),
+                surface: SurfaceVtkOptions {
+                    u_range: (0.0, 1.0),
+                    v_range: (0.0, 1.0),
+                    num_points: (100, 100),
+                },
                 show_control_points: true,
                 isolines: Some((vec![0.2, 0.2, 0.6, 0.8], vec![0.2, 0.2, 0.6, 0.8])),
             },

@@ -83,7 +83,7 @@ pub trait Surface {
     }
 }
 //}}}
-//{{{ struct: ParametricSurfaceVtkOptions
+//{{{ struct: SurfaceVtkOptions
 pub(crate) struct SurfaceVtkOptions {
     pub(crate) u_range: (f64, f64),
     pub(crate) v_range: (f64, f64),

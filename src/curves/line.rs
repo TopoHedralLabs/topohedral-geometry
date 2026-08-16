@@ -4,7 +4,13 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
-use crate::{common::Vec3, utils::is_unit_vector, Curve};
+use crate::{
+    common::Vec3,
+    curves::common::add_curve_to_vtk,
+    utils::is_unit_vector,
+    vtk::{ToVtk, VtkUgridFile},
+    Curve,
+};
 //}}}
 //{{{ std imports
 //}}}
@@ -49,5 +55,52 @@ impl Curve for Line {
 
     fn param_range(&self) -> (f64, f64) {
         (f64::NEG_INFINITY, f64::INFINITY)
+    }
+}
+
+pub(crate) struct VtkOptions {
+    pub(crate) ustart: f64,
+    pub(crate) uend: f64,
+    pub(crate) num_points: usize,
+}
+
+impl ToVtk for Line {
+    type Options = VtkOptions;
+
+    fn add_to_vtk(
+        &self,
+        VtkOptions {
+            ustart,
+            uend,
+            num_points,
+        }: Self::Options,
+        vtk_file: &mut VtkUgridFile,
+    ) {
+        add_curve_to_vtk(self, ustart, uend, num_points, vtk_file);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_vtk_output() {
+        let curve = Line::new(
+            Vec3::from_col_slice(&[0.0, 0.0, 0.0]),
+            Vec3::from_col_slice(&[1.0, 0.0, 0.0]),
+        );
+        let mut vtk_file = VtkUgridFile::default();
+        curve.add_to_vtk(
+            VtkOptions {
+                ustart: -1.0,
+                uend: 1.0,
+                num_points: 10,
+            },
+            &mut vtk_file,
+        );
+        vtk_file
+            .save("line.vtu")
+            .expect("line VTK output should be written");
     }
 }

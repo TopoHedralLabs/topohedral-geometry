@@ -5,7 +5,9 @@
 
 //{{{ crate imports
 use crate::common::Vec3;
+use crate::curves::common::add_curve_to_vtk;
 use crate::utils::{is_unit_vector, orthogonal_vector};
+use crate::vtk::{ToVtk, VtkUgridFile};
 use crate::Curve;
 //}}}
 //{{{ std imports
@@ -13,6 +15,7 @@ use std::f64;
 //}}}
 //{{{ dep imports
 use topohedral_linalg::VectorOps;
+use vtkio::model::CellType;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
@@ -87,3 +90,64 @@ impl Curve for Circle {
         (f64::NEG_INFINITY, f64::INFINITY)
     }
 }
+
+pub(crate) struct VtkOptions {
+    pub(crate) ustart: f64,
+    pub(crate) uend: f64,
+    pub(crate) num_points: usize,
+    pub(crate) show_center: bool,
+}
+
+impl ToVtk for Circle {
+    type Options = VtkOptions;
+
+    fn add_to_vtk(
+        &self,
+        opts: Self::Options,
+        vtk_file: &mut VtkUgridFile,
+    ) {
+        let VtkOptions {
+            ustart,
+            uend,
+            num_points,
+            show_center,
+        } = opts;
+
+        add_curve_to_vtk(self, ustart, uend, num_points, vtk_file);
+        if show_center {
+            let center_id = vtk_file.num_points() as u64;
+            vtk_file.add_point(self.center);
+            vtk_file.add_cell(vec![center_id], CellType::Vertex);
+        }
+    }
+}
+
+//-------------------------------------------------------------------------------------------------
+//{{{ mod: tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_vtk_output() {
+        let curve = Circle::new(
+            Vec3::from_col_slice(&[0.0, 0.0, 0.0]),
+            Vec3::from_col_slice(&[0.0, 0.0, 1.0]),
+            1.0,
+        );
+        let mut vtk_file = VtkUgridFile::default();
+        curve.add_to_vtk(
+            VtkOptions {
+                ustart: 0.0,
+                uend: std::f64::consts::TAU,
+                num_points: 100,
+                show_center: false,
+            },
+            &mut vtk_file,
+        );
+        vtk_file
+            .save("circle.vtu")
+            .expect("circle VTK output should be written");
+    }
+}
+//}}}

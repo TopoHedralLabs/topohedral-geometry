@@ -4,7 +4,7 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
-use super::common::Curve;
+use super::common::{add_curve_to_vtk, Curve};
 use crate::common::{binom_coeff, homog, inv_homog, StatArray, Vec3, Vec4};
 use crate::splines::{self, find_span, is_member, knot_eq, PMAX, PMAX_SQR};
 use crate::utils::WEIGHT_ULPS;
@@ -661,34 +661,26 @@ impl ToVtk for BCurve {
         opts: Self::Options,
         vtk_file: &mut VtkUgridFile,
     ) {
-        let np_init = vtk_file.num_points() as u64;
-        let nc_init = vtk_file.num_cells() as u64;
-
-        //{{{ trace
-        trace!("np_init = {np_init} nc_init = {nc_init}");
-        //}}}
-
         let VtkOptions {
             ustart,
             uend,
             num_points,
             show_control_points,
         } = opts;
+        add_curve_to_vtk(self, ustart, uend, num_points, vtk_file);
 
-        let num_segments = (num_points - 1) as u64;
-        let du = (uend - ustart) / num_segments as f64;
-        let mut ui = 0.0;
-        for _ in 0..num_points {
-            let xi = self.eval_point(ui);
-            //{{{ trace
-            trace!("ui = {ui:.4e} xi = {xi}");
-            //}}}
-            vtk_file.add_point(xi);
-            ui += du;
+        if show_control_points {
+            let np_init = vtk_file.num_points() as u64;
+            let ncell_start = np_init;
+            for (i, point_w) in self.points_w.iter().enumerate() {
+                let point = inv_homog(point_w);
+                vtk_file.add_point(point);
+                vtk_file.add_cell(vec![ncell_start + i as u64], CellType::Vertex);
+            }
+            let ctrlpt_cell: Vec<u64> =
+                (ncell_start..(ncell_start + self.points_w.len() as u64)).collect();
+            vtk_file.add_cell(ctrlpt_cell, CellType::PolyLine);
         }
-
-        let cell: Vec<u64> = (np_init..(np_init + num_segments)).collect();
-        vtk_file.add_cell(cell, CellType::PolyLine);
     }
 }
 
@@ -738,7 +730,7 @@ mod tests {
                 ustart: 0.0,
                 uend: 1.0,
                 num_points: 100,
-                show_control_points: false,
+                show_control_points: true,
             },
             &mut vtk_file,
         );

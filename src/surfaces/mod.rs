@@ -17,6 +17,7 @@ mod cone;
 mod cylinder;
 mod plane;
 mod sphere;
+mod torus;
 
 pub use bsurface::BSurface;
 pub use common::Surface;
@@ -24,3 +25,4 @@ pub use cone::Cone;
 pub use cylinder::Cylinder;
 pub use plane::Plane;
 pub use sphere::Sphere;
+pub use torus::Torus;

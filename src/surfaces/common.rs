@@ -136,7 +136,7 @@ pub(crate) fn add_surface_to_vtk<S: Surface + ?Sized>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{vtk::ToVtk, Cone, Cylinder, Plane, Sphere};
+    use crate::{vtk::ToVtk, Cone, Cylinder, Plane, Sphere, Torus};
 
     fn assert_vtk_export<S>(surface: S)
     where
@@ -162,6 +162,7 @@ mod tests {
         let z_axis = Vec3::from_col_slice(&[0.0, 0.0, 1.0]);
 
         assert_vtk_export(Sphere::default());
+        assert_vtk_export(Torus::default());
         assert_vtk_export(Cone::new(origin, z_axis, 2.0, 2.0, 1.0));
         assert_vtk_export(Cylinder::new(origin, z_axis, 1.0));
         assert_vtk_export(Plane::new(origin, z_axis));

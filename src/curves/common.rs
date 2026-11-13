@@ -3,20 +3,28 @@
 //! Longer description of module
 //--------------------------------------------------------------------------------------------------
 
-use topohedral_linalg::VectorOps;
-
 //{{{ crate imports
-use crate::common::{zero_vec, Vec3};
+use crate::{common::Vec3, vtk::VtkUgridFile};
 //}}}
 //{{{ std imports
 //}}}
 //{{{ dep imports
+use topohedral_linalg::VectorOps;
+use topohedral_tracing::*;
+use vtkio::model::CellType;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
+//{{{ trait: Curve
 pub trait Curve {
-    fn dimension(&self) -> usize {
-        3
+    fn param_range(&self) -> (f64, f64);
+
+    fn in_range(
+        &self,
+        u: f64,
+    ) -> bool {
+        let range = self.param_range();
+        u >= range.0 && u <= range.1
     }
 
     fn eval_point(
@@ -59,7 +67,7 @@ pub trait Curve {
         u: f64,
         normalize: bool,
     ) -> Vec3 {
-        let mut curve_dirivatives: [Vec3; 3] = std::array::from_fn(|_| zero_vec());
+        let mut curve_dirivatives: [Vec3; 3] = std::array::from_fn(|_| Vec3::zeros());
         self.eval_all_derivatives(u, 2, &mut curve_dirivatives);
 
         let velocity = &curve_dirivatives[1];
@@ -110,4 +118,37 @@ pub trait Curve {
     ) -> f64 {
         0.0
     }
+}
+//}}}
+//{{{ struct: CurveVtkOptions
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) struct CurveVtkOptions {
+    pub(crate) ustart: f64,
+    pub(crate) uend: f64,
+    pub(crate) num_points: usize,
+}
+//}}}
+
+#[trace_fn]
+pub(crate) fn add_curve_to_vtk<C: Curve + ?Sized>(
+    curve: &C,
+    ustart: f64,
+    uend: f64,
+    num_points: usize,
+    vtk_file: &mut VtkUgridFile,
+) {
+    assert!(num_points >= 2, "at least two points are required");
+
+    let np_init = vtk_file.num_points() as u64;
+    let num_segments = (num_points - 1) as u64;
+    let du = (uend - ustart) / num_segments as f64;
+    let mut ui = ustart;
+    for _ in 0..num_points {
+        let xi = curve.eval_point(ui);
+        vtk_file.add_point(xi);
+        ui += du;
+    }
+
+    let curve_cell: Vec<u64> = (np_init..(np_init + num_points as u64)).collect();
+    vtk_file.add_cell(curve_cell, CellType::PolyLine);
 }

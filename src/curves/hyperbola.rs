@@ -1,8 +1,12 @@
 //! A hyperbolic conic curve embedded in three-dimensional space.
 
-use crate::common::Vec3;
-use crate::utils::orthogonal_vector;
-use crate::Curve;
+use crate::{
+    common::Vec3,
+    curves::common::{add_curve_to_vtk, CurveVtkOptions},
+    utils::{is_unit_vector, orthogonal_vector},
+    vtk::{ToVtk, VtkUgridFile},
+    Curve,
+};
 use topohedral_linalg::VectorOps;
 
 /// A hyperbola parameterized as
@@ -23,7 +27,7 @@ impl Hyperbola {
         x_radius: f64,
         y_radius: f64,
     ) -> Self {
-        assert!(normal.norm() > 0.0);
+        assert!(is_unit_vector(&normal));
         assert!(x_radius > 0.0);
         assert!(y_radius > 0.0);
 
@@ -40,6 +44,10 @@ impl Hyperbola {
 }
 
 impl Curve for Hyperbola {
+    fn param_range(&self) -> (f64, f64) {
+        (f64::NEG_INFINITY, f64::INFINITY)
+    }
+
     fn eval_point(
         &self,
         u: f64,
@@ -77,5 +85,48 @@ impl Curve for Hyperbola {
         } else {
             (x_radius * u.sinh() * x_axis + y_radius * u.cosh() * y_axis).into()
         }
+    }
+}
+
+impl ToVtk for Hyperbola {
+    type Options = CurveVtkOptions;
+
+    fn add_to_vtk(
+        &self,
+        CurveVtkOptions {
+            ustart,
+            uend,
+            num_points,
+        }: Self::Options,
+        vtk_file: &mut VtkUgridFile,
+    ) {
+        add_curve_to_vtk(self, ustart, uend, num_points, vtk_file);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_vtk_output() {
+        let curve = Hyperbola::new(
+            Vec3::from_col_slice(&[0.0, 0.0, 0.0]),
+            Vec3::from_col_slice(&[0.0, 0.0, 1.0]),
+            1.0,
+            0.5,
+        );
+        let mut vtk_file = VtkUgridFile::default();
+        curve.add_to_vtk(
+            CurveVtkOptions {
+                ustart: -1.0,
+                uend: 1.0,
+                num_points: 100,
+            },
+            &mut vtk_file,
+        );
+        vtk_file
+            .save("hyperbola.vtu")
+            .expect("hyperbola VTK output should be written");
     }
 }

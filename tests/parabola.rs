@@ -31,7 +31,6 @@ fn reference_parabola() -> Parabola {
 fn evaluation_follows_the_parabola_parameterization() {
     let parabola = reference_parabola();
 
-    assert_eq!(parabola.dimension(), 3);
     assert_vector_eq(&parabola.eval_point(0.0), [1.0, -2.0, 3.0]);
     assert_vector_eq(&parabola.eval_point(1.0), [3.0, -3.0, 3.0]);
     assert_vector_eq(&parabola.eval_point(2.0), [5.0, -6.0, 3.0]);

@@ -4,39 +4,26 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
-use super::common::Curve;
-use crate::common::{binom_coeff, homog, inv_homog, zero_vec, zero_vec4, MultDimArray, Vec3, Vec4};
+use super::common::{add_curve_to_vtk, Curve, CurveVtkOptions};
+use crate::common::{binom_coeff, homog, inv_homog, StatArray, Vec3, Vec4};
 use crate::knot_multiplicity;
 use crate::splines::{self, find_span, is_member, knot_eq, PMAX, PMAX_SQR};
+use crate::utils::WEIGHT_ULPS;
+use crate::vtk::{ToVtk, VtkUgridFile};
 //}}}
 //{{{ std imports
 //}}}
 //{{{ dep imports
-use thiserror::Error;
+use approx::ulps_eq;
 use topohedral_linalg::TransformOps;
 use topohedral_tracing::*;
+use vtkio::model::CellType;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
 //{{{ collection: constants
 pub const BCURVE_DER_MAX: usize = 5;
 pub const BCURVE_DER_MAX_SQRD: usize = 25;
-//}}}
-//{{{ enum: CurveError
-#[derive(Debug, Error, Clone)]
-pub enum CurveError {
-    #[error("Construction error {0}")]
-    ConstructionError(String),
-}
-//}}}
-//{{{ struct BCurveData
-#[derive(Debug, Clone)]
-pub struct BCurveData {
-    pub p: usize,
-    pub knots: Vec<f64>,
-    pub points: Vec<Vec3>,
-    pub weights: Vec<f64>,
-}
 //}}}
 //{{{ struct BCurve
 #[derive(Debug, Clone, Default)]
@@ -46,61 +33,67 @@ pub struct BCurve {
     points_w: Vec<Vec4>,
 }
 //}}}
-//{{{ impl: BCurveData
-impl BCurveData {
-    #[trace_fn]
-    fn validate(&self) -> Result<(), CurveError> {
-        if self.p > PMAX {
-            return Err(CurveError::ConstructionError("Order too high".to_string()));
-        }
-        if !self.knots.is_sorted() {
-            return Err(CurveError::ConstructionError(
-                "Knots not sorted".to_string(),
-            ));
-        }
-        if !self.weights.iter().all(|&x| x >= 0.0) {
-            return Err(CurveError::ConstructionError(
-                "Weights must by positive".to_string(),
-            ));
-        }
-        if self.points.len() != self.weights.len() {
-            return Err(CurveError::ConstructionError(
-                "Points and weights must have same size".to_string(),
-            ));
-        }
-        if self.knots.len() != (self.weights.len() + self.p + 1) {
-            return Err(CurveError::ConstructionError(
-                "Knots have wrong size".to_string(),
-            ));
-        }
-        if self.points.is_empty() {
-            return Err(CurveError::ConstructionError(
-                "At least one point is required".to_string(),
-            ));
-        }
-        Ok(())
-    }
-}
-//}}}
 //{{{ impl: BCurve
 impl BCurve {
     //{{{ fun: new
     #[trace_fn]
-    pub fn new(data: BCurveData) -> Result<Self, CurveError> {
-        data.validate()?;
-        let n = data.weights.len();
-        let mut points_w = vec![zero_vec4(); n];
-        for (point_w, (point, &weight)) in points_w
-            .iter_mut()
-            .zip(data.points.iter().zip(&data.weights))
-        {
+    pub fn new(
+        order: usize,
+        knots: Vec<f64>,
+        points: Vec<Vec3>,
+        weights: Vec<f64>,
+    ) -> Self {
+        assert!(order <= PMAX, "Order too high");
+        assert!(knots.is_sorted(), "Knots not sorted");
+        assert!(
+            weights.iter().all(|&weight| weight >= 0.0),
+            "Weights must be positive"
+        );
+        assert_eq!(
+            points.len(),
+            weights.len(),
+            "Points and weights must have same size"
+        );
+        assert_eq!(
+            knots.len(),
+            weights.len() + order + 1,
+            "Knots have wrong size"
+        );
+        assert!(!points.is_empty(), "At least one point is required");
+
+        let n = weights.len();
+        let mut points_w = vec![Vec4::zeros(); n];
+        for (point_w, (point, &weight)) in points_w.iter_mut().zip(points.iter().zip(&weights)) {
             point_w.copy_from(&homog(point, weight));
         }
-        Ok(Self {
-            order: data.p,
-            knots: data.knots,
+        Self {
+            order,
+            knots,
             points_w,
-        })
+        }
+    }
+    //}}}
+    //{{{ fun: from_points_w
+    /// Constructs a curve directly from its homogeneous control points.
+    ///
+    /// This skips the validation performed by [`BCurve::new`] and is intended for callers which
+    /// have already produced a consistent order/knots/control-points triple, such as the row-wise
+    /// and column-wise operations of [`crate::BSurface`].
+    pub(crate) fn from_points_w(
+        order: usize,
+        knots: Vec<f64>,
+        points_w: Vec<Vec4>,
+    ) -> Self {
+        debug_assert_eq!(
+            knots.len(),
+            points_w.len() + order + 1,
+            "Knots have wrong size"
+        );
+        Self {
+            order,
+            knots,
+            points_w,
+        }
     }
     //}}}
     //{{{ fun: dimension
@@ -155,8 +148,8 @@ impl BCurve {
         //}}}
 
         let mut knots_after = vec![0.0; num_knots_after];
-        let mut points_w_after = vec![zero_vec4(); num_points_after];
-        let mut points_auxiliary = vec![zero_vec4(); ord + 1];
+        let mut points_w_after = vec![Vec4::zeros(); num_points_after];
+        let mut points_auxiliary = vec![Vec4::zeros(); ord + 1];
 
         knots_after[0..=span].copy_from_slice(&knots_before[0..=span]);
         knots_after[(span + 1)..=(span + num_insertions)].fill(u);
@@ -173,8 +166,8 @@ impl BCurve {
             points_auxiliary[i].copy_from(&points_w_before[span - ord + i]);
         }
 
-        let mut p1 = zero_vec4();
-        let mut p2 = zero_vec4();
+        let mut p1 = Vec4::zeros();
+        let mut p2 = Vec4::zeros();
 
         let mut l = span;
         for j in 1..(num_insertions + 1) {
@@ -241,7 +234,7 @@ impl BCurve {
         let n_knots_after = n_knots_before + n_new_knots;
         let n_points_after = n_points_before + n_new_knots;
         let mut knots_after = vec![0.0; n_knots_after];
-        let mut points_w_after = vec![zero_vec4(); n_points_after];
+        let mut points_w_after = vec![Vec4::zeros(); n_points_after];
 
         let span_start = find_span(knots_before, *u.first().unwrap(), ord);
         let span_end = find_span(knots_before, *u.last().unwrap(), ord) + 1;
@@ -367,8 +360,7 @@ impl BCurve {
 
         let comb = binom_coeff::<PMAX_SQR>(ord_after);
 
-        let mut bezalfs =
-            MultDimArray::<f64, PMAX_SQR, 2>::new(0.0, &[ord_after + 1, ord_before + 1]);
+        let mut bezalfs = StatArray::<f64, PMAX_SQR, 2>::new(0.0, &[ord_after + 1, ord_before + 1]);
 
         bezalfs[&[0, 0]] = 1.0;
         bezalfs[&[ord_after, ord_before]] = 1.0;
@@ -392,7 +384,7 @@ impl BCurve {
         let n_knots_after_ub = (n_knots_before + 1) * (q + 1) * ord_after + 1;
         let n_points_after_ub = (n_knots_before + 1) * (q + 1);
         let mut knots_after = vec![0.0; n_knots_after_ub];
-        let mut point_w_after = vec![zero_vec4(); n_points_after_ub];
+        let mut point_w_after = vec![Vec4::zeros(); n_points_after_ub];
 
         let mut mh = ord_after;
         let mut kind = ord_after + 1;
@@ -406,8 +398,8 @@ impl BCurve {
 
         let mut bpts: Vec<Vec4> = points_w_before[0..(ord_before + 1)].to_vec();
 
-        let mut ebpts = vec![zero_vec4(); ord_after + 1];
-        let mut next_bpts = vec![zero_vec4(); ord_before.saturating_sub(1)];
+        let mut ebpts = vec![Vec4::zeros(); ord_after + 1];
+        let mut next_bpts = vec![Vec4::zeros(); ord_before.saturating_sub(1)];
 
         while b < last_knot {
             let i = b;
@@ -536,12 +528,33 @@ impl BCurve {
         *points_w_before = point_w_after[..=nh].to_vec();
     }
     //}}}
+    //{{{ fun: with_elevated_degree
+    pub fn with_elevated_degree(
+        &self,
+        q: usize,
+    ) -> Self {
+        let mut new = self.clone();
+        new.elevate_degree(q);
+        new
+    }
+    //}}}
+    //{{{ fun: is_rational
+    pub fn is_rational(&self) -> bool {
+        let w00 = self.points_w[0][3];
+        for vec in self.points_w.iter().take(1) {
+            if !ulps_eq!(vec[3], w00, max_ulps = WEIGHT_ULPS) {
+                return false;
+            }
+        }
+        true
+    }
+    //}}}
 }
 //}}}
 //{{{ impl Curve for Bcurve
 impl Curve for BCurve {
-    fn dimension(&self) -> usize {
-        3
+    fn param_range(&self) -> (f64, f64) {
+        (*self.knots.first().unwrap(), *self.knots.last().unwrap())
     }
 
     fn eval_point(
@@ -550,7 +563,7 @@ impl Curve for BCurve {
     ) -> Vec3 {
         assert!(is_member(&self.knots, u));
 
-        let mut point_w = zero_vec4();
+        let mut point_w = Vec4::zeros();
         let (start, end, _) = splines::non_zero_basis(&self.knots, u, self.order);
 
         let mut bases_funs = [0.0; PMAX];
@@ -568,7 +581,7 @@ impl Curve for BCurve {
     ) -> Vec3 {
         assert!(m < BCURVE_DER_MAX, "derivative order exceeds maximum");
 
-        let mut derivatives: [Vec3; BCURVE_DER_MAX] = std::array::from_fn(|_| zero_vec());
+        let mut derivatives = [Vec3::zeros(); BCURVE_DER_MAX];
         self.eval_all_derivatives(u, m, &mut derivatives[..=m]);
         derivatives[m]
     }
@@ -585,6 +598,7 @@ impl Curve for BCurve {
             derivative_order < BCURVE_DER_MAX,
             "derivative order exceeds maximum"
         );
+        assert!(derivative_order <= self.order);
 
         if derivative_order == 0 {
             derivatives[0].copy_from(self.eval_point(u));
@@ -594,11 +608,9 @@ impl Curve for BCurve {
             let (start, _, num_basis) = splines::non_zero_basis(knots, u, p);
             let num_derivatives = derivative_order + 1;
             let mut curve_derivatives_w: [Vec4; BCURVE_DER_MAX] =
-                std::array::from_fn(|_| zero_vec4());
-            let mut basis_ders_arr = MultDimArray::<f64, BCURVE_DER_MAX_SQRD, 2>::new(
-                0.0,
-                &[num_basis, num_derivatives],
-            );
+                std::array::from_fn(|_| Vec4::zeros());
+            let mut basis_ders_arr =
+                StatArray::<f64, BCURVE_DER_MAX_SQRD, 2>::new(0.0, &[num_basis, num_derivatives]);
             splines::eval_diff_all(knots, u, p, derivative_order, basis_ders_arr.as_slice_mut());
 
             for m in 0..num_derivatives {
@@ -610,9 +622,9 @@ impl Curve for BCurve {
             }
 
             let binom = binom_coeff::<BCURVE_DER_MAX_SQRD>(derivative_order);
-            let mut ders_loc: [Vec3; BCURVE_DER_MAX] = std::array::from_fn(|_| zero_vec());
+            let mut ders_loc: [Vec3; BCURVE_DER_MAX] = std::array::from_fn(|_| Vec3::zeros());
             let w0 = curve_derivatives_w[0][3];
-            let mut v = zero_vec();
+            let mut v = Vec3::zeros();
 
             for m in 0..num_derivatives {
                 v.fill(0.0);
@@ -629,6 +641,104 @@ impl Curve for BCurve {
                 derivatives[m].copy_from(&ders_loc[m]);
             }
         }
+    }
+}
+//}}}
+
+#[cfg_attr(not(test), allow(dead_code))]
+pub(crate) struct VtkOptions {
+    pub(crate) curve: CurveVtkOptions,
+    pub(crate) show_control_points: bool,
+}
+
+impl ToVtk for BCurve {
+    type Options = VtkOptions;
+
+    #[trace_fn]
+    fn add_to_vtk(
+        &self,
+        opts: Self::Options,
+        vtk_file: &mut VtkUgridFile,
+    ) {
+        let VtkOptions {
+            curve:
+                CurveVtkOptions {
+                    ustart,
+                    uend,
+                    num_points,
+                },
+            show_control_points,
+        } = opts;
+        add_curve_to_vtk(self, ustart, uend, num_points, vtk_file);
+
+        if show_control_points {
+            let np_init = vtk_file.num_points() as u64;
+            let ncell_start = np_init;
+            for (i, point_w) in self.points_w.iter().enumerate() {
+                let point = inv_homog(point_w);
+                vtk_file.add_point(point);
+                vtk_file.add_cell(vec![ncell_start + i as u64], CellType::Vertex);
+            }
+            let ctrlpt_cell: Vec<u64> =
+                (ncell_start..(ncell_start + self.points_w.len() as u64)).collect();
+            vtk_file.add_cell(ctrlpt_cell, CellType::PolyLine);
+        }
+    }
+}
+
+//-------------------------------------------------------------------------------------------------
+//{{{ mod: tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    //{{{ fun: point
+    fn point(values: [f64; 3]) -> Vec3 {
+        Vec3::from_col_slice(&values)
+    }
+    //}}}
+    //{{{ fun: reference_curve
+    fn reference_curve() -> BCurve {
+        BCurve::new(
+            4,
+            vec![
+                0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.2, 0.4, 0.7, 0.7, 0.8, 1.0, 1.0, 1.0, 1.0, 1.0,
+            ],
+            vec![
+                point([0.0, 0.0, 0.0]),
+                point([1.0, 1.0, 1.0]),
+                point([2.0, -1.0, 2.0]),
+                point([3.0, 0.0, 2.0]),
+                point([5.0, -2.0, 1.0]),
+                point([6.0, -3.0, -1.0]),
+                point([8.0, -4.0, -1.0]),
+                point([10.0, -5.0, -2.0]),
+                point([10.0, -6.0, -2.0]),
+                point([9.0, -6.0, -1.0]),
+                point([8.0, -5.0, 0.0]),
+                point([7.0, -4.0, 0.0]),
+            ],
+            vec![1.0, 2.0, 3.0, 2.0, 1.0, 2.0, 3.0, 2.0, 1.0, 2.0, 3.0, 2.0],
+        )
+    }
+    //}}}
+
+    #[test]
+    fn test_vtk_output() {
+        let curve = reference_curve();
+        let mut vtk_file = VtkUgridFile::default();
+        curve.add_to_vtk(
+            VtkOptions {
+                curve: CurveVtkOptions {
+                    ustart: 0.0,
+                    uend: 1.0,
+                    num_points: 100,
+                },
+                show_control_points: true,
+            },
+            &mut vtk_file,
+        );
+        vtk_file.save("bcurve.vtu").expect("failed to save bcurve");
     }
 }
 //}}}

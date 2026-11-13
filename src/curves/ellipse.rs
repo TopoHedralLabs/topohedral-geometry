@@ -4,9 +4,13 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
-use crate::common::Vec3;
-use crate::utils::orthogonal_vector;
-use crate::Curve;
+use crate::{
+    common::Vec3,
+    curves::common::{add_curve_to_vtk, CurveVtkOptions},
+    utils::{is_unit_vector, orthogonal_vector},
+    vtk::{ToVtk, VtkUgridFile},
+    Curve,
+};
 //}}}
 //{{{ std imports
 //}}}
@@ -30,7 +34,7 @@ impl Ellipse {
         x_radius: f64,
         y_radius: f64,
     ) -> Self {
-        assert!(normal.norm() > 0.0);
+        assert!(is_unit_vector(&normal));
         assert!(x_radius > 0.0);
         assert!(y_radius > 0.0);
 
@@ -47,6 +51,10 @@ impl Ellipse {
 }
 
 impl Curve for Ellipse {
+    fn param_range(&self) -> (f64, f64) {
+        (f64::NEG_INFINITY, f64::INFINITY)
+    }
+
     fn eval_point(
         &self,
         u: f64,
@@ -90,5 +98,48 @@ impl Curve for Ellipse {
 
             (sign * (-rx * u.sin() * x_axis + ry * u.cos() * y_axis)).into()
         }
+    }
+}
+
+impl ToVtk for Ellipse {
+    type Options = CurveVtkOptions;
+
+    fn add_to_vtk(
+        &self,
+        CurveVtkOptions {
+            ustart,
+            uend,
+            num_points,
+        }: Self::Options,
+        vtk_file: &mut VtkUgridFile,
+    ) {
+        add_curve_to_vtk(self, ustart, uend, num_points, vtk_file);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_vtk_output() {
+        let curve = Ellipse::new(
+            Vec3::from_col_slice(&[0.0, 0.0, 0.0]),
+            Vec3::from_col_slice(&[0.0, 0.0, 1.0]),
+            2.0,
+            1.0,
+        );
+        let mut vtk_file = VtkUgridFile::default();
+        curve.add_to_vtk(
+            CurveVtkOptions {
+                ustart: 0.0,
+                uend: std::f64::consts::TAU,
+                num_points: 100,
+            },
+            &mut vtk_file,
+        );
+        vtk_file
+            .save("ellipse.vtu")
+            .expect("ellipse VTK output should be written");
     }
 }

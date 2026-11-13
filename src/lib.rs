@@ -14,13 +14,26 @@
 mod common;
 mod curves;
 mod splines;
+mod surfaces;
 mod utils;
+#[cfg_attr(not(test), allow(dead_code))]
+mod vtk;
 
 pub use common::{Vec3, Vec4};
-pub use curves::{
-    BCurve, BCurveData, Circle, Curve, CurveError, Ellipse, Hyperbola, Line, Parabola,
-};
+pub use curves::{BCurve, Circle, Curve, Ellipse, Hyperbola, Line, Parabola};
 pub use splines::{
     eval as spline_eval, eval_diff as spline_eval_diff, eval_diff_all as spline_eval_diff_all,
     knot_multiplicity, multiplicites as knot_multiplicities,
 };
+pub use surfaces::{BSurface, Cone, Cylinder, Plane, Sphere, Surface, Torus};
+
+#[cfg(test)]
+mod test_init {
+    use ctor::ctor;
+    use topohedral_tracing::init;
+
+    #[ctor]
+    fn init_logger() {
+        init().expect("failed to initialize topohedral logger");
+    }
+}

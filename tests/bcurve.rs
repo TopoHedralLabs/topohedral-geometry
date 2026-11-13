@@ -4,7 +4,7 @@
 //--------------------------------------------------------------------------------------------------
 
 //{{{ crate imports
-use topohedral_geometry::{knot_multiplicities, BCurve, BCurveData, Curve, Vec3};
+use topohedral_geometry::{knot_multiplicities, BCurve, Curve, Vec3};
 //}}}
 //{{{ std imports
 //}}}
@@ -28,12 +28,12 @@ fn point(values: [f64; 3]) -> Vec3 {
 //}}}
 //{{{ fun: reference_curve
 fn reference_curve() -> BCurve {
-    BCurve::new(BCurveData {
-        p: 4,
-        knots: vec![
+    BCurve::new(
+        4,
+        vec![
             0.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.2, 0.2, 0.4, 0.7, 0.7, 0.8, 1.0, 1.0, 1.0, 1.0, 1.0,
         ],
-        points: vec![
+        vec![
             point([0.0, 0.0, 0.0]),
             point([1.0, 1.0, 1.0]),
             point([2.0, -1.0, 2.0]),
@@ -47,10 +47,58 @@ fn reference_curve() -> BCurve {
             point([8.0, -5.0, 0.0]),
             point([7.0, -4.0, 0.0]),
         ],
-        weights: vec![1.0, 2.0, 3.0, 2.0, 1.0, 2.0, 3.0, 2.0, 1.0, 2.0, 3.0, 2.0],
-    })
-    .unwrap()
+        vec![1.0, 2.0, 3.0, 2.0, 1.0, 2.0, 3.0, 2.0, 1.0, 2.0, 3.0, 2.0],
+    )
 }
+//}}}
+//{{{ collection: construction
+//{{{ test: new_rejects_order_above_maximum
+#[test]
+#[should_panic(expected = "Order too high")]
+fn new_rejects_order_above_maximum() {
+    BCurve::new(usize::MAX, vec![], vec![], vec![]);
+}
+//}}}
+//{{{ test: new_rejects_unsorted_knots
+#[test]
+#[should_panic(expected = "Knots not sorted")]
+fn new_rejects_unsorted_knots() {
+    BCurve::new(0, vec![1.0, 0.0], vec![point([0.0, 0.0, 0.0])], vec![1.0]);
+}
+//}}}
+//{{{ test: new_rejects_negative_weights
+#[test]
+#[should_panic(expected = "Weights must be positive")]
+fn new_rejects_negative_weights() {
+    BCurve::new(0, vec![0.0, 1.0], vec![point([0.0, 0.0, 0.0])], vec![-1.0]);
+}
+//}}}
+//{{{ test: new_rejects_mismatched_point_and_weight_counts
+#[test]
+#[should_panic(expected = "Points and weights must have same size")]
+fn new_rejects_mismatched_point_and_weight_counts() {
+    BCurve::new(
+        0,
+        vec![0.0, 0.5, 1.0],
+        vec![point([0.0, 0.0, 0.0])],
+        vec![1.0, 1.0],
+    );
+}
+//}}}
+//{{{ test: new_rejects_wrong_knot_count
+#[test]
+#[should_panic(expected = "Knots have wrong size")]
+fn new_rejects_wrong_knot_count() {
+    BCurve::new(0, vec![0.0], vec![point([0.0, 0.0, 0.0])], vec![1.0]);
+}
+//}}}
+//{{{ test: new_rejects_empty_points
+#[test]
+#[should_panic(expected = "At least one point is required")]
+fn new_rejects_empty_points() {
+    BCurve::new(0, vec![0.0], vec![], vec![]);
+}
+//}}}
 //}}}
 //{{{ fun: assert_vector_eq
 fn assert_vector_eq(

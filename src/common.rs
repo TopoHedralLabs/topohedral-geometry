@@ -6,7 +6,7 @@
 //{{{ crate imports
 //}}}
 //{{{ std imports
-use std::{ops::Index, ops::IndexMut};
+use std::ops::{Deref, DerefMut, Index, IndexMut};
 //}}}
 //{{{ dep imports
 use topohedral_linalg::SCVector;
@@ -18,16 +18,6 @@ use topohedral_linalg::SCVector;
 pub type Vec3 = SCVector<f64, 3>;
 /// A point or vector in homogeneous 3-space.
 pub type Vec4 = SCVector<f64, 4>;
-//}}}
-//{{{ fun: zero_vec
-pub(crate) fn zero_vec() -> Vec3 {
-    Vec3::zeros()
-}
-//}}}
-//{{{ fun: zero_vec4
-pub(crate) fn zero_vec4() -> Vec4 {
-    Vec4::zeros()
-}
 //}}}
 //{{{ fun: inv_homog
 /// Performs the perspective map (inverse of homogeneuos map) from homogeneous coordinates to
@@ -72,10 +62,18 @@ pub(crate) fn homog(
 /// $$
 /// todo
 /// $$
+#[derive(Debug, Clone)]
 #[repr(C)]
 pub(crate) struct IndexHelper<const N: usize> {
     /// Helper array for converting a multi-dimensional index into a linear index
     lin_helper: [usize; N],
+}
+//}}}
+//{{{ impl Default for IndexHelper
+impl<const N: usize> Default for IndexHelper<N> {
+    fn default() -> Self {
+        IndexHelper { lin_helper: [0; N] }
+    }
 }
 //}}}
 //{{{ impl: IndexHelper
@@ -104,8 +102,8 @@ impl<const N: usize> IndexHelper<N> {
     }
 }
 //}}}
-//{{{ struct: MultiDimArray
-pub(crate) struct MultDimArray<T, const MAX_SIZE: usize, const DIM: usize>
+//{{{ struct: StaticArray
+pub(crate) struct StatArray<T, const MAX_SIZE: usize, const DIM: usize>
 where
     T: Clone,
 {
@@ -113,8 +111,8 @@ where
     index_helper: IndexHelper<DIM>,
 }
 //}}}
-//{{{ impl: MultDimArray
-impl<T, const MAX_SIZE: usize, const DIM: usize> MultDimArray<T, MAX_SIZE, DIM>
+//{{{ impl: StaticArray
+impl<T, const MAX_SIZE: usize, const DIM: usize> StatArray<T, MAX_SIZE, DIM>
 where
     T: Clone,
 {
@@ -132,14 +130,40 @@ where
         }
     }
 
+    pub fn as_slice(&self) -> &[T] {
+        &self.data
+    }
+
     pub fn as_slice_mut(&mut self) -> &mut [T] {
         &mut self.data
     }
 }
 //}}}
-//{{{ impl: Index for MultDimArray
+//{{{ impl: Deref for StatArray
+impl<T, const MAX_SIZE: usize, const DIM: usize> Deref for StatArray<T, MAX_SIZE, DIM>
+where
+    T: Clone,
+{
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+//}}}
+//{{{ impl: DerefMut for StatArray
+impl<T, const MAX_SIZE: usize, const DIM: usize> DerefMut for StatArray<T, MAX_SIZE, DIM>
+where
+    T: Clone,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
+    }
+}
+//}}}
+//{{{ impl: Index for StaticArray
 impl<T, const MAX_SIZE: usize, const DIM: usize> Index<&[usize; DIM]>
-    for MultDimArray<T, MAX_SIZE, DIM>
+    for StatArray<T, MAX_SIZE, DIM>
 where
     T: Clone,
 {
@@ -154,9 +178,24 @@ where
     }
 }
 //}}}
-//{{{ impl: IndexMut for MultDimArray
+//{{{ impl: Index for StatArray
+impl<T, const MAX_SIZE: usize, const DIM: usize> Index<usize> for StatArray<T, MAX_SIZE, DIM>
+where
+    T: Clone,
+{
+    type Output = T;
+
+    fn index(
+        &self,
+        index: usize,
+    ) -> &Self::Output {
+        &self.data[index]
+    }
+}
+//}}}
+//{{{ impl: IndexMut for StaticArray
 impl<T, const MAX_SIZE: usize, const DIM: usize> IndexMut<&[usize; DIM]>
-    for MultDimArray<T, MAX_SIZE, DIM>
+    for StatArray<T, MAX_SIZE, DIM>
 where
     T: Clone,
 {
@@ -169,9 +208,140 @@ where
     }
 }
 //}}}
+//{{{ impl: IndexMut for StatArray
+impl<T, const MAX_SIZE: usize, const DIM: usize> IndexMut<usize> for StatArray<T, MAX_SIZE, DIM>
+where
+    T: Clone,
+{
+    fn index_mut(
+        &mut self,
+        index: usize,
+    ) -> &mut Self::Output {
+        &mut self.data[index]
+    }
+}
+//}}}
+//{{{ struct: Array
+#[derive(Debug, Clone, Default)]
+pub(crate) struct DynArray<T, const DIM: usize>
+where
+    T: Clone,
+{
+    data: Vec<T>,
+    index_helper: IndexHelper<DIM>,
+}
+//}}}
+//{{{ impl: Array
+impl<T, const DIM: usize> DynArray<T, DIM>
+where
+    T: Clone,
+{
+    pub fn new(
+        init_value: T,
+        dims: &[usize],
+    ) -> Self {
+        let num_elems: usize = dims.iter().product();
+        assert!(dims.len() == DIM);
+
+        Self {
+            data: vec![init_value; num_elems],
+            index_helper: IndexHelper::new(dims),
+        }
+    }
+
+    pub fn as_slice(&self) -> &[T] {
+        &self.data
+    }
+
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub fn index_helper(&self) -> &IndexHelper<DIM> {
+        &self.index_helper
+    }
+}
+//}}}
+//{{{ impl: Deref for DynArray
+impl<T, const DIM: usize> Deref for DynArray<T, DIM>
+where
+    T: Clone,
+{
+    type Target = [T];
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+//}}}
+//{{{ impl: DerefMut for DynArray
+impl<T, const DIM: usize> DerefMut for DynArray<T, DIM>
+where
+    T: Clone,
+{
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.data
+    }
+}
+//}}}
+//{{{ impl: Index for Array
+impl<T, const DIM: usize> Index<&[usize; DIM]> for DynArray<T, DIM>
+where
+    T: Clone,
+{
+    type Output = T;
+
+    fn index(
+        &self,
+        index: &[usize; DIM],
+    ) -> &Self::Output {
+        let lin_index = self.index_helper.lin_index(index);
+        &self.data[lin_index]
+    }
+}
+//}}}
+//{{{ impl: Index for DynArray
+impl<T, const DIM: usize> Index<usize> for DynArray<T, DIM>
+where
+    T: Clone,
+{
+    type Output = T;
+
+    fn index(
+        &self,
+        index: usize,
+    ) -> &Self::Output {
+        &self.data[index]
+    }
+}
+//}}}
+//{{{ impl: IndexMut for Array
+impl<T, const DIM: usize> IndexMut<&[usize; DIM]> for DynArray<T, DIM>
+where
+    T: Clone,
+{
+    fn index_mut(
+        &mut self,
+        index: &[usize; DIM],
+    ) -> &mut Self::Output {
+        let lin_index = self.index_helper.lin_index(index);
+        &mut self.data[lin_index]
+    }
+}
+//}}}
+//{{{ impl: IndexMut for DynArray
+impl<T, const DIM: usize> IndexMut<usize> for DynArray<T, DIM>
+where
+    T: Clone,
+{
+    fn index_mut(
+        &mut self,
+        index: usize,
+    ) -> &mut Self::Output {
+        &mut self.data[index]
+    }
+}
+//}}}
 //{{{ fun: binom_coeff
-pub(crate) fn binom_coeff<const MAX_SIZE: usize>(n: usize) -> MultDimArray<f64, MAX_SIZE, 2> {
-    let mut binom = MultDimArray::<f64, MAX_SIZE, 2>::new(0.0, &[n + 1, n + 1]);
+pub(crate) fn binom_coeff<const MAX_SIZE: usize>(n: usize) -> StatArray<f64, MAX_SIZE, 2> {
+    let mut binom = StatArray::<f64, MAX_SIZE, 2>::new(0.0, &[n + 1, n + 1]);
     for i in 0..n + 1 {
         binom[&[i, i]] = 1.0;
         binom[&[i, 0]] = 1.0;

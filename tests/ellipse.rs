@@ -28,7 +28,6 @@ fn reference_ellipse() -> Ellipse {
 fn dimension_and_cardinal_points() {
     let ellipse = reference_ellipse();
 
-    assert_eq!(ellipse.dimension(), 3);
     assert_vector_eq(&ellipse.eval_point(0.0), &[1.0, 0.0, 3.0]);
     assert_vector_eq(
         &ellipse.eval_point(std::f64::consts::FRAC_PI_2),

@@ -19,9 +19,11 @@ mod hyperbola;
 mod line;
 mod parabola;
 
-pub use bcurve::{BCurve, BCurveData, CurveError};
+pub use bcurve::BCurve;
+pub(crate) use bcurve::VtkOptions as BCurveVtkOptions;
 pub use circle::Circle;
 pub use common::Curve;
+pub(crate) use common::CurveVtkOptions;
 pub use ellipse::Ellipse;
 pub use hyperbola::Hyperbola;
 pub use line::Line;

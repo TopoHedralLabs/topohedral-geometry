@@ -38,7 +38,6 @@ fn reference_circle() -> Circle {
 fn dimension_and_cardinal_points() {
     let circle = reference_circle();
 
-    assert_eq!(circle.dimension(), 3);
     assert_vector_eq(&circle.eval_point(0.0), &[1.0, 0.0, 3.0]);
     assert_vector_eq(
         &circle.eval_point(std::f64::consts::FRAC_PI_2),

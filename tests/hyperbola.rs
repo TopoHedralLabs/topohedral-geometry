@@ -26,7 +26,6 @@ fn reference_hyperbola() -> Hyperbola {
 fn evaluation_follows_the_hyperbolic_parameterization() {
     let hyperbola = reference_hyperbola();
 
-    assert_eq!(hyperbola.dimension(), 3);
     assert_vector_eq(&hyperbola.eval_point(0.0), [1.0, 0.0, 3.0]);
     assert_vector_eq(
         &hyperbola.eval_point(1.0),

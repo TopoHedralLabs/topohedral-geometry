@@ -6,10 +6,10 @@
 //{{{ crate imports
 use super::common::{add_curve_to_vtk, Curve, CurveVtkOptions};
 use crate::common::{binom_coeff, homog, inv_homog, StatArray, Vec3, Vec4};
+use crate::knot_multiplicity;
 use crate::splines::{self, find_span, is_member, knot_eq, PMAX, PMAX_SQR};
 use crate::utils::WEIGHT_ULPS;
 use crate::vtk::{ToVtk, VtkUgridFile};
-use crate::{knot_multiplicity, vtk};
 //}}}
 //{{{ std imports
 //}}}
@@ -645,6 +645,7 @@ impl Curve for BCurve {
 }
 //}}}
 
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) struct VtkOptions {
     pub(crate) curve: CurveVtkOptions,
     pub(crate) show_control_points: bool,
@@ -737,7 +738,7 @@ mod tests {
             },
             &mut vtk_file,
         );
-        vtk_file.save("bcurve.vtu");
+        vtk_file.save("bcurve.vtu").expect("failed to save bcurve");
     }
 }
 //}}}

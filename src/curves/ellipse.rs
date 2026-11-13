@@ -13,7 +13,6 @@ use crate::{
 };
 //}}}
 //{{{ std imports
-use std::f64;
 //}}}
 //{{{ dep imports
 use topohedral_linalg::VectorOps;

@@ -53,15 +53,6 @@ impl VtkUgridFile {
         self.coords.extend_from_slice(p.as_ref());
     }
 
-    pub(crate) fn add_points(
-        &mut self,
-        pts: &[Vec3],
-    ) {
-        for p in pts {
-            self.add_point(*p);
-        }
-    }
-
     pub(crate) fn add_cell(
         &mut self,
         cell: Vec<u64>,
@@ -74,26 +65,6 @@ impl VtkUgridFile {
         self.connectivity.extend(cell);
         self.offsets.push(self.connectivity.len() as u64);
         self.types.push(cell_type);
-    }
-
-    pub(crate) fn add_point_scalar_data(
-        &mut self,
-        name: &str,
-        values: Vec<f64>,
-    ) {
-        assert_eq!(values.len(), self.num_points());
-        self.point_data
-            .push(Attribute::scalars(name, 1).with_data(values));
-    }
-
-    pub(crate) fn add_cell_scalar_data(
-        &mut self,
-        name: &str,
-        values: Vec<f64>,
-    ) {
-        assert_eq!(values.len(), self.num_cells());
-        self.cell_data
-            .push(Attribute::scalars(name, 1).with_data(values));
     }
 
     pub(crate) fn save(

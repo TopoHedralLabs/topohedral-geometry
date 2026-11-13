@@ -6,11 +6,7 @@
 //{{{ crate imports
 //}}}
 //{{{ std imports
-use std::{
-    array::from_fn,
-    num,
-    ops::{Deref, DerefMut, Index, IndexMut},
-};
+use std::ops::{Deref, DerefMut, Index, IndexMut};
 //}}}
 //{{{ dep imports
 use topohedral_linalg::SCVector;
@@ -257,10 +253,7 @@ where
         &self.data
     }
 
-    pub fn as_slice_mut(&mut self) -> &mut [T] {
-        &mut self.data
-    }
-
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn index_helper(&self) -> &IndexHelper<DIM> {
         &self.index_helper
     }

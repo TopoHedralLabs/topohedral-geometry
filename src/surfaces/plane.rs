@@ -3,7 +3,6 @@
 //! Longer description of module
 //--------------------------------------------------------------------------------------------------
 
-use approx::assert_relative_eq;
 use topohedral_linalg::VectorOps;
 
 //{{{ crate imports

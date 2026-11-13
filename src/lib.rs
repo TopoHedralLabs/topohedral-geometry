@@ -8,7 +8,6 @@
 //{{{ std imports
 //}}}
 //{{{ dep imports
-use ctor::ctor;
 //}}}
 //--------------------------------------------------------------------------------------------------
 
@@ -17,6 +16,7 @@ mod curves;
 mod splines;
 mod surfaces;
 mod utils;
+#[cfg_attr(not(test), allow(dead_code))]
 mod vtk;
 
 pub use common::{Vec3, Vec4};

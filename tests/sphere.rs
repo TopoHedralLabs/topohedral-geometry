@@ -55,15 +55,15 @@ fn dimension_and_cardinal_points() {
     let ey = vector([1.0, 0.0, 0.0]);
     let ez = vector([0.0, 0.0, 1.0]);
 
-    let p1: Vec3 = (&c + r * &ex).into();
+    let p1: Vec3 = c + r * ex;
     assert_vector_eq(&sphere.eval_point(0.0, 0.0), p1.as_ref());
-    let p2: Vec3 = (&c + r * &ey).into();
+    let p2: Vec3 = c + r * ey;
     assert_vector_eq(&sphere.eval_point(FRAC_PI_2, 0.0), p2.as_ref());
-    let p3: Vec3 = (&c + r * &ez).into();
+    let p3: Vec3 = c + r * ez;
     assert_vector_eq(&sphere.eval_point(0.0, FRAC_PI_2), p3.as_ref());
-    let p4: Vec3 = (&c - r * &ez).into();
+    let p4: Vec3 = c - r * ez;
     assert_vector_eq(&sphere.eval_point(0.0, -FRAC_PI_2), p4.as_ref());
-    let p5: Vec3 = (&c - r * &ex).into();
+    let p5: Vec3 = c - r * ex;
     assert_vector_eq(&sphere.eval_point(PI, 0.0), p5.as_ref());
 }
 

@@ -84,6 +84,7 @@ pub trait Surface {
 }
 //}}}
 //{{{ struct: SurfaceVtkOptions
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) struct SurfaceVtkOptions {
     pub(crate) u_range: (f64, f64),
     pub(crate) v_range: (f64, f64),

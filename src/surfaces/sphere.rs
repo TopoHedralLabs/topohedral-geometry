@@ -87,9 +87,8 @@ impl Surface for Sphere {
         let Self {
             center: c,
             radius,
-            x_axis: ex,
-            y_axis: ey,
             z_axis: ez,
+            ..
         } = self;
         let r = *radius;
         (c + r * v.cos() * self.eval_latitude_derivative(u, 0) + r * v.sin() * ez).into()

@@ -560,6 +560,7 @@ impl Surface for BSurface {
 }
 //}}}
 //{{{ struct: VtkOptions
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) struct VtkOptions {
     surface: SurfaceVtkOptions,
     show_control_points: bool,

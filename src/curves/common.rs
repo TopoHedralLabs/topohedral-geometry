@@ -121,6 +121,7 @@ pub trait Curve {
 }
 //}}}
 //{{{ struct: CurveVtkOptions
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) struct CurveVtkOptions {
     pub(crate) ustart: f64,
     pub(crate) uend: f64,

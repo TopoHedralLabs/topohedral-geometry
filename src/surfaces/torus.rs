@@ -84,11 +84,10 @@ impl Surface for Torus {
         u: f64,
         v: f64,
     ) -> Vec3 {
-        (self.center
+        self.center
             + (self.major_radius + self.minor_radius * v.cos())
                 * self.eval_latitude_derivative(u, 0)
-            + self.minor_radius * v.sin() * self.z_axis)
-            .into()
+            + self.minor_radius * v.sin() * self.z_axis
     }
 
     fn eval_derivative(

@@ -11,7 +11,6 @@ use crate::vtk::{ToVtk, VtkUgridFile};
 use crate::Curve;
 //}}}
 //{{{ std imports
-use std::f64;
 //}}}
 //{{{ dep imports
 use topohedral_linalg::VectorOps;
@@ -91,6 +90,7 @@ impl Curve for Circle {
     }
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) struct VtkOptions {
     pub(crate) curve: CurveVtkOptions,
     pub(crate) show_center: bool,

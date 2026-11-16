@@ -15,6 +15,7 @@ mod common;
 mod curves;
 mod splines;
 mod surfaces;
+mod topology;
 mod utils;
 #[cfg_attr(not(test), allow(dead_code))]
 mod vtk;
@@ -26,6 +27,7 @@ pub use splines::{
     knot_multiplicity, multiplicites as knot_multiplicities,
 };
 pub use surfaces::{BSurface, Cone, Cylinder, Plane, Sphere, Surface, Torus};
+pub use topology::{Body, Modeller};
 
 #[cfg(test)]
 mod test_init {

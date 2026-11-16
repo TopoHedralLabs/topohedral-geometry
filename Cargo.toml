@@ -1,15 +1,16 @@
 [package]
 name = "topohedral-geometry"
 version = "0.0.0"
-edition = "2021"
+edition = "2024"
+rust-version = "1.85"
 
 [features]
 trace = ["topohedral-tracing/trace"]
 
 [dependencies]
 approx = "0.5.1"
-topohedral-tracing = {version = "0.2.0", registry = "cloudsmith"}
-topohedral-linalg = {version = "5.0.0", registry = "cloudsmith"}
+topohedral-tracing = {version = "0.3.1", registry = "cloudsmith"}
+topohedral-linalg = {version = "0.0.2", registry = "cloudsmith"}
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "2.0.17"
 vtkio = "0.6.3"

@@ -27,7 +27,11 @@ pub use splines::{
     knot_multiplicity, multiplicites as knot_multiplicities,
 };
 pub use surfaces::{BSurface, Cone, Cylinder, Plane, Sphere, Surface, Torus};
-pub use topology::{Body, Modeller};
+pub use topology::{
+    Body, BodyId, CurveId, EdgeId, EdgeRef, FaceId, FaceRef, HalfedgeId, HalfedgeRef, Modeller,
+    PointId, RegionId, RegionRef, RingId, RingRef, ShellId, ShellRef, SurfaceId, UvCurveId,
+    VertexId, VertexRef,
+};
 
 #[cfg(test)]
 mod test_init {

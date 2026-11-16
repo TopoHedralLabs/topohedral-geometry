@@ -83,26 +83,19 @@ impl IndexResource {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Handle {
     index: Index,
     generation: u32,
 }
 
+#[derive(Debug, Default)]
 struct Slot<T> {
     generation: u32,
     value: Option<T>,
 }
 
-impl<T> Default for Slot<T> {
-    fn default() -> Self {
-        Self {
-            generation: 0,
-            value: None,
-        }
-    }
-}
-
+#[derive(Debug)]
 pub struct SlotVec<T> {
     indices: IndexResource,
     entities: Vec<Slot<T>>,
@@ -169,8 +162,9 @@ impl<T> SlotVec<T> {
         handle: Handle,
     ) -> Option<&T> {
         let Handle { index, generation } = handle;
-        if self.indices.is_used(index) && self.entities[index as usize].generation == generation {
-            return self.entities[index as usize].value.as_ref();
+        let slot = self.entities.get(usize::try_from(index).ok()?)?;
+        if slot.generation == generation {
+            return slot.value.as_ref();
         }
         None
     }
@@ -180,8 +174,9 @@ impl<T> SlotVec<T> {
         handle: Handle,
     ) -> Option<&mut T> {
         let Handle { index, generation } = handle;
-        if self.indices.is_used(index) && self.entities[index as usize].generation == generation {
-            return self.entities[index as usize].value.as_mut();
+        let slot = self.entities.get_mut(usize::try_from(index).ok()?)?;
+        if slot.generation == generation {
+            return slot.value.as_mut();
         }
         None
     }
@@ -232,7 +227,9 @@ impl<'a, T> Iterator for Iter<'a, T> {
         if self.cur_index == self.slot_vec.len() {
             return None;
         }
-        self.slot_vec.entities[self.cur_index].value.as_ref()
+        let out = self.slot_vec.entities[self.cur_index].value.as_ref();
+        self.cur_index += 1;
+        out
     }
 }
 
@@ -295,6 +292,14 @@ mod tests {
             assert_eq!(handle.generation, 1);
             assert!(!slotvec.is_stale(handle));
             assert_eq!(slotvec.get(handle), Some(&(100 + i)));
+        }
+
+        for (i, slot) in slotvec.iter().enumerate() {
+            if i < 20 || i >= 50 {
+                assert_eq!(*slot, i as u64);
+            } else {
+                assert_eq!(*slot, 100 + i as u64);
+            }
         }
     }
 }

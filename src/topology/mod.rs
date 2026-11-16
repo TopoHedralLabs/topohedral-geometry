@@ -14,4 +14,8 @@
 mod schema;
 mod utils;
 
-pub use schema::{Body, Modeller};
+pub use schema::{
+    Body, BodyId, CurveId, EdgeId, EdgeRef, FaceId, FaceRef, HalfedgeId, HalfedgeRef, Modeller,
+    PointId, RegionId, RegionRef, RingId, RingRef, ShellId, ShellRef, SurfaceId, UvCurveId,
+    VertexId, VertexRef,
+};
